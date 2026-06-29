@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "aep": {
+      "command": "python",
+      "args": ["/path/to/aep-mcp-server/server.py"]
+    },
+    "rtcdp": {
+      "command": "python",
+      "args": ["/path/to/aep-mcp-server/rtcdp_proxy.py"]
+    }
+  }
+}

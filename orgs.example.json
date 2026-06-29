@@ -1,0 +1,42 @@
+{
+  "_comment": "Rename this file to orgs.json and fill in your credentials. NEVER commit orgs.json to version control.",
+
+  "default": "my_org",
+
+  "profiles": {
+
+    "my_org": {
+      "_comment": "Option A: pre-generated bearer token (simplest for dev/testing)",
+      "access_token": "",
+      "api_key": "",
+      "org_id": "XXXX@AdobeOrg",
+      "sandbox": "prod"
+    },
+
+    "client_a_dev": {
+      "_comment": "Option B: OAuth Server-to-Server (auto-refreshes; recommended for production)",
+      "client_id": "",
+      "client_secret": "",
+      "api_key": "",
+      "org_id": "YYYY@AdobeOrg",
+      "sandbox": "dev"
+    },
+
+    "client_a_prod": {
+      "client_id": "",
+      "client_secret": "",
+      "api_key": "",
+      "org_id": "YYYY@AdobeOrg",
+      "sandbox": "prod"
+    },
+
+    "client_b": {
+      "client_id": "",
+      "client_secret": "",
+      "api_key": "",
+      "org_id": "ZZZZ@AdobeOrg",
+      "sandbox": "prod"
+    }
+
+  }
+}
