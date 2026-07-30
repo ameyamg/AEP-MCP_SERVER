@@ -49,7 +49,7 @@ mcp = FastMCP(
         "(roles, permissions, and effective policies). "
         "CJA tools (cja_*) use Data View IDs instead of sandboxes. "
         "All AEP tools accept an optional `sandbox` parameter; if omitted they use the "
-        "AEP_SANDBOX_NAME environment variable (default: prod)."
+        "AEP_SANDBOX_NAME environment variable or the active org profile's sandbox."
     ),
 )
 

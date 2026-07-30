@@ -201,7 +201,7 @@ def register(mcp) -> None:
             title: Field group display name.
             properties: The JSON Schema `properties` object for the field group.
                 Custom fields must be nested under the org's tenant namespace key,
-                e.g. {"_deloitte_digitalengage": {"type": "object", "properties": {...}}}.
+                e.g. {"_myorg": {"type": "object", "properties": {...}}}.
             description: Optional description.
             intended_class: Class $id the field group is meant to extend
                 (default: Individual Profile).
@@ -271,7 +271,7 @@ def register(mcp) -> None:
               "xdm:sourceSchema": "<schema $id>",
               "xdm:sourceVersion": 1,
               "xdm:sourceProperty": "/_tenant/fieldName",
-              "xdm:namespace": "ProxyID",
+              "xdm:namespace": "Email",
               "xdm:property": "xdm:code",
               "xdm:isPrimary": true
             }

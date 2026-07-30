@@ -6,35 +6,67 @@
   "profiles": {
 
     "my_org": {
-      "_comment": "Option A: pre-generated bearer token (simplest for dev/testing)",
-      "access_token": "",
-      "api_key": "",
+      "_comment": "Option A: pre-generated bearer token (simplest for dev/testing — no auto-refresh)",
+      "access_token": "<your-bearer-token>",
+      "api_key": "<your-api-key>",
       "org_id": "XXXX@AdobeOrg",
       "sandbox": "prod"
     },
 
     "client_a_dev": {
-      "_comment": "Option B: OAuth Server-to-Server (auto-refreshes; recommended for production)",
-      "client_id": "",
-      "client_secret": "",
-      "api_key": "",
-      "org_id": "YYYY@AdobeOrg",
-      "sandbox": "dev"
+      "_comment": "Option B: OAuth Server-to-Server (auto-refreshes; recommended). Get credentials from Adobe Developer Console → Project → OAuth Server-to-Server.",
+      "client_id": "<client-id>",
+      "client_secret": "<client-secret>",
+      "api_key": "<api-key-same-as-client-id>",
+      "org_id": "XXXX@AdobeOrg",
+      "sandbox": "my-org-dev",
+
+      "_comment_sandboxes": "Named sandbox aliases — lets you call switch_sandbox('dev') or switch_sandbox('prod') by short name.",
+      "sandboxes": {
+        "dev": "my-org-dev",
+        "prod": "my-org-prod"
+      },
+
+      "_comment_namespaces": "Primary identity namespace per sandbox. 'primary' is the namespace code, 'primary_id' is its integer ID (find it via list_identity_namespaces). 'xdm_identity_map_key' is the key used in XDM identityMap — usually matches 'primary'.",
+      "namespaces": {
+        "my-org-dev": {
+          "primary": "Email",
+          "primary_id": 6,
+          "xdm_identity_map_key": "Email"
+        },
+        "my-org-prod": {
+          "primary": "Email",
+          "primary_id": 6,
+          "xdm_identity_map_key": "Email"
+        }
+      },
+
+      "_comment_merge_policies": "Merge policy IDs per sandbox. Find these via list_merge_policies. 'primary' is used by default; 'secondary' is optional for edge/streaming contexts.",
+      "merge_policies": {
+        "my-org-dev": {
+          "primary": "<merge-policy-uuid>",
+          "secondary": "<merge-policy-uuid>"
+        },
+        "my-org-prod": {
+          "primary": "<merge-policy-uuid>",
+          "secondary": "<merge-policy-uuid>"
+        }
+      }
     },
 
     "client_a_prod": {
-      "client_id": "",
-      "client_secret": "",
-      "api_key": "",
-      "org_id": "YYYY@AdobeOrg",
-      "sandbox": "prod"
+      "client_id": "<client-id>",
+      "client_secret": "<client-secret>",
+      "api_key": "<api-key-same-as-client-id>",
+      "org_id": "XXXX@AdobeOrg",
+      "sandbox": "my-org-prod"
     },
 
     "client_b": {
-      "client_id": "",
-      "client_secret": "",
-      "api_key": "",
-      "org_id": "ZZZZ@AdobeOrg",
+      "client_id": "<client-id>",
+      "client_secret": "<client-secret>",
+      "api_key": "<api-key-same-as-client-id>",
+      "org_id": "YYYY@AdobeOrg",
       "sandbox": "prod"
     }
 

@@ -80,7 +80,7 @@ def register(mcp) -> None:
         or the session ends.
 
         Args:
-            sandbox: Alias ('dev', 'prod') or full sandbox name (e.g. 'aetna-hipaa-prod').
+            sandbox: Alias ('dev', 'prod') or full sandbox name (e.g. 'my-org-prod').
         """
         try:
             active = auth.get_active_profile()
@@ -98,7 +98,7 @@ def register(mcp) -> None:
     @mcp.tool()
     @track("reset_sandbox")
     def reset_sandbox() -> dict:
-        """Reset the active sandbox back to the profile default (dev for Aetna).
+        """Reset the active sandbox back to the profile default.
 
         Use this after finishing prod operations to return to the default sandbox.
         """

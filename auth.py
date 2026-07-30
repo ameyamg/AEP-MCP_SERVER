@@ -98,7 +98,7 @@ def get_profile_info(name: str = "") -> dict:
         return {
             "mode": "env_vars",
             "org_id": os.getenv("AEP_ORG_ID", ""),
-            "sandbox": os.getenv("AEP_SANDBOX_NAME", "prod"),
+            "sandbox": os.getenv("AEP_SANDBOX_NAME", ""),
             "auth_method": "access_token" if os.getenv("AEP_ACCESS_TOKEN") else "oauth_s2s",
         }
     cfg = _profiles[profile_name]
@@ -106,7 +106,7 @@ def get_profile_info(name: str = "") -> dict:
         "mode": "profile",
         "profile": profile_name,
         "org_id": cfg.get("org_id", ""),
-        "sandbox": cfg.get("sandbox", "prod"),
+        "sandbox": cfg.get("sandbox", ""),
         "auth_method": "access_token" if cfg.get("access_token") else "oauth_s2s",
     }
 
@@ -114,17 +114,18 @@ def get_profile_info(name: str = "") -> dict:
 def get_primary_namespace(sandbox_name: str = "", profile_name: str = "") -> dict:
     """Return the primary identity namespace config for the given sandbox.
 
-    Returns a dict with 'code' (e.g. 'ProxyID') and 'id' (integer namespace ID).
-    Falls back to {"code": "Email", "id": 6} if not configured.
+    Returns a dict with 'code' (e.g. 'CRMID') and 'id' (integer namespace ID).
+    Falls back to {"code": "Email", "id": 6} if not configured in the profile.
     """
     name = profile_name or _active_profile
     cfg = _profiles.get(name, {})
     sandbox = sandbox_name or get_active_sandbox(name)
     ns = cfg.get("namespaces", {}).get(sandbox, {})
+    code = ns.get("primary", "Email")
     return {
-        "code": ns.get("primary", "Email"),
+        "code": code,
         "id": ns.get("primary_id", 6),
-        "xdm_key": ns.get("xdm_identity_map_key", ns.get("primary", "Email")),
+        "xdm_key": ns.get("xdm_identity_map_key", code),
     }
 
 
@@ -161,14 +162,14 @@ def get_active_sandbox(profile_name: str = "") -> str:
     if name in _sandbox_overrides:
         return _sandbox_overrides[name]
     cfg = _profiles.get(name, {})
-    return cfg.get("sandbox") or os.environ.get("AEP_SANDBOX_NAME", "prod")
+    return cfg.get("sandbox") or os.environ.get("AEP_SANDBOX_NAME", "")
 
 
 def set_sandbox_override(sandbox_alias_or_name: str, profile_name: str = "") -> str:
     """Set a session-level sandbox override for the active (or named) profile.
 
     Accepts either a named alias from the profile's 'sandboxes' dict (e.g. 'prod')
-    or a full sandbox name (e.g. 'aetna-hipaa-prod').
+    or a full sandbox name (e.g. 'my-org-prod').
     Returns the resolved full sandbox name.
     """
     name = profile_name or _active_profile

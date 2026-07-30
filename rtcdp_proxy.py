@@ -13,7 +13,7 @@ Add to .claude/mcp_servers.json:
   {
     "rtcdp": {
       "command": "python",
-      "args": ["/Users/amghanekar/aep-mcp-server/rtcdp_proxy.py"]
+      "args": ["/path/to/aep-mcp-server/rtcdp_proxy.py"]
     }
   }
 """
