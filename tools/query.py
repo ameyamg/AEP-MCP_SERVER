@@ -27,7 +27,9 @@ def register(mcp) -> None:
             output_dataset_id: Optional dataset ID to write results into (CTAS).
         """
         try:
-            body: dict = {"dbName": "prod:all", "sql": sql}
+            from auth import get_active_sandbox
+            effective_sandbox = sandbox or get_active_sandbox()
+            body: dict = {"dbName": f"{effective_sandbox}:all", "sql": sql}
             if name:
                 body["name"] = name
             if output_dataset_id:
