@@ -185,6 +185,41 @@ Set `RTCDP_MCP_URL` in your `.env` if the upstream URL differs from the default 
 
 ---
 
+## Program delivery methodology
+
+This server handles **API execution** — actually doing things in AEP/AJO. For program strategy,
+architecture decisions, AEM content design, data-layer architecture, Adobe Tags/Web SDK, Adobe
+Target, and delivery phasing, use the Deloitte enterprise **`adobe-experience-cloud`** skill
+alongside this server. The two are designed to work together:
+
+> `adobe-experience-cloud` skill → strategy + architecture → **AEP MCP Server tools** → execution
+
+---
+
+## Delivery asset templates
+
+Use these templates during the Architect and Personalize phases. They are pre-wired with references
+to the MCP tools that populate each section.
+
+### Data-layer and XDM collection spec
+[`assets/experience-data-layer-spec.md`](./assets/experience-data-layer-spec.md)
+
+The contract between engineering, analytics, and data teams: event taxonomy, data elements, XDM
+field mapping, identity namespaces, consent, and AEP dataset plan. Relevant MCP tools are called
+out inline (`list_schemas`, `list_identity_namespaces`, `list_descriptors`, etc.).
+
+### AJO journey design canvas
+[`assets/journey-design-canvas.md`](./assets/journey-design-canvas.md)
+
+One-page journey design: audience entry, channel steps, decisioning, consent gates, exit criteria,
+and KPIs. MCP tools for pulling live objects are called out inline (`list_segments`, `list_offers`,
+`list_offer_activities`, `cja_run_report`, etc.).
+
+**Usage:** copy the template file, fill in your engagement specifics, and ask Claude to populate
+the AEP-specific fields (schema IDs, segment IDs, namespace codes) using the connected MCP tools.
+
+---
+
 ## Questions or issues?
 
 Open an issue at [github.com/amghanekar-deloitte/AEP-MCP_SERVER/issues](https://github.com/amghanekar-deloitte/AEP-MCP_SERVER/issues).
