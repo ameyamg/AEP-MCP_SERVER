@@ -1,73 +1,62 @@
 {
-  "_comment": "Rename this file to orgs.json and fill in your credentials. NEVER commit orgs.json to version control.",
+  "_comment": "Rename this file to orgs.json and fill in the REQUIRED fields. Everything else is auto-discoverable — see ONBOARDING.md. NEVER commit orgs.json to version control.",
 
   "default": "my_org",
 
   "profiles": {
 
     "my_org": {
-      "_comment": "Option A: pre-generated bearer token (simplest for dev/testing — no auto-refresh)",
-      "access_token": "<your-bearer-token>",
-      "api_key": "<your-api-key>",
-      "org_id": "XXXX@AdobeOrg",
-      "sandbox": "prod"
-    },
 
-    "client_a_dev": {
-      "_comment": "Option B: OAuth Server-to-Server (auto-refreshes; recommended). Get credentials from Adobe Developer Console → Project → OAuth Server-to-Server.",
-      "client_id": "<client-id>",
-      "client_secret": "<client-secret>",
-      "api_key": "<api-key-same-as-client-id>",
-      "org_id": "XXXX@AdobeOrg",
-      "sandbox": "my-org-dev",
+      "_comment_required": "REQUIRED — 5 fields from Adobe Developer Console (OAuth Server-to-Server credential). This is all you need to connect.",
+      "client_id": "<from Developer Console → Project → OAuth S2S>",
+      "client_secret": "<from Developer Console → click Retrieve client secret>",
+      "api_key": "<same value as client_id>",
+      "org_id": "<XXXX@AdobeOrg — top-right corner of Developer Console project>",
+      "sandbox": "<your default sandbox name, e.g. prod or dev>",
 
-      "_comment_sandboxes": "Named sandbox aliases — lets you call switch_sandbox('dev') or switch_sandbox('prod') by short name.",
+      "_comment_optional": "OPTIONAL — leave these out on first connect. Run /aep-mcp-setup or use the MCP tools to auto-discover and paste in the values. You can also edit manually at any time.",
+
+      "_comment_sandboxes": "Short aliases → full sandbox names. Lets you say 'switch to dev' or 'switch to prod'. Discover full names with: list_sandboxes",
       "sandboxes": {
-        "dev": "my-org-dev",
-        "prod": "my-org-prod"
+        "dev": "<dev-sandbox-name>",
+        "prod": "<prod-sandbox-name>"
       },
 
-      "_comment_namespaces": "Primary identity namespace per sandbox. 'primary' is the namespace code, 'primary_id' is its integer ID (find it via list_identity_namespaces). 'xdm_identity_map_key' is the key used in XDM identityMap — usually matches 'primary'.",
+      "_comment_namespaces": "Primary identity namespace per sandbox. Discover with: list_identity_namespaces. 'primary' = namespace code (e.g. Email, CRMID), 'primary_id' = integer ID, 'xdm_identity_map_key' = key used in XDM identityMap (usually same as primary).",
       "namespaces": {
-        "my-org-dev": {
-          "primary": "Email",
-          "primary_id": 6,
-          "xdm_identity_map_key": "Email"
+        "<dev-sandbox-name>": {
+          "primary": "<namespace code, e.g. Email>",
+          "primary_id": 0,
+          "xdm_identity_map_key": "<namespace code>"
         },
-        "my-org-prod": {
-          "primary": "Email",
-          "primary_id": 6,
-          "xdm_identity_map_key": "Email"
+        "<prod-sandbox-name>": {
+          "primary": "<namespace code>",
+          "primary_id": 0,
+          "xdm_identity_map_key": "<namespace code>"
         }
       },
 
-      "_comment_merge_policies": "Merge policy IDs per sandbox. Find these via list_merge_policies. 'primary' is used by default; 'secondary' is optional for edge/streaming contexts.",
+      "_comment_merge_policies": "Merge policy UUIDs per sandbox. Discover with: list_merge_policies. 'primary' is the default merge policy; 'secondary' is optional for Edge/streaming contexts.",
       "merge_policies": {
-        "my-org-dev": {
-          "primary": "<merge-policy-uuid>",
-          "secondary": "<merge-policy-uuid>"
+        "<dev-sandbox-name>": {
+          "primary": "<merge-policy-uuid>"
         },
-        "my-org-prod": {
+        "<prod-sandbox-name>": {
           "primary": "<merge-policy-uuid>",
-          "secondary": "<merge-policy-uuid>"
+          "secondary": "<edge-merge-policy-uuid>"
         }
       }
+
     },
 
-    "client_a_prod": {
-      "client_id": "<client-id>",
-      "client_secret": "<client-secret>",
-      "api_key": "<api-key-same-as-client-id>",
-      "org_id": "XXXX@AdobeOrg",
-      "sandbox": "my-org-prod"
-    },
+    "_comment_multi_org": "Add more profiles here for additional orgs or clients. Switch at runtime: switch_org_profile('client_b')",
 
     "client_b": {
       "client_id": "<client-id>",
       "client_secret": "<client-secret>",
-      "api_key": "<api-key-same-as-client-id>",
-      "org_id": "YYYY@AdobeOrg",
-      "sandbox": "prod"
+      "api_key": "<client-id>",
+      "org_id": "<YYYY@AdobeOrg>",
+      "sandbox": "<sandbox-name>"
     }
 
   }

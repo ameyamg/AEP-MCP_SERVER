@@ -47,13 +47,13 @@ cd AEP-MCP_SERVER
 pip install -r requirements.txt
 ```
 
-### 2. Configure credentials
+### 2. Configure credentials — required fields only
 
 ```bash
 cp orgs.example.json orgs.json
 ```
 
-Open `orgs.json` and fill in your values — see the inline comments in `orgs.example.json` for guidance on every field. The minimum required fields per profile are:
+You only need to fill in **5 fields** to connect. Everything else (sandbox aliases, namespace IDs, merge policy IDs) is auto-discoverable once you're connected.
 
 ```json
 {
@@ -64,22 +64,15 @@ Open `orgs.json` and fill in your values — see the inline comments in `orgs.ex
       "client_secret": "<from Adobe Developer Console>",
       "api_key": "<same as client_id>",
       "org_id": "<XXXX@AdobeOrg>",
-      "sandbox": "<your-sandbox-name>"
+      "sandbox": "<any valid sandbox name, e.g. prod>"
     }
   }
 }
 ```
 
-**`orgs.json` is gitignored — it will never be committed.**
+All credentials come from **Adobe Developer Console → your project → OAuth Server-to-Server**.
 
-Alternatively, use environment variables (`.env` file):
-```
-AEP_CLIENT_ID=...
-AEP_CLIENT_SECRET=...
-AEP_API_KEY=...
-AEP_ORG_ID=...
-AEP_SANDBOX_NAME=...
-```
+**`orgs.json` is gitignored — it will never be committed.**
 
 ### 3. Register with Claude Code
 
@@ -102,15 +95,35 @@ Run `/mcp` in Claude Code to reload servers. You should see `aep` listed as conn
 
 ---
 
-## Guided setup wizard
+## Auto-discovering optional values
 
-If you prefer a step-by-step interactive setup, open Claude Code in the repo directory and run:
+Once you're connected with the 5 required fields, you can have Claude populate the rest of `orgs.json` automatically. Ask Claude:
+
+> *"Discover my sandboxes and update orgs.json"*
+> *"Find my identity namespaces for the prod sandbox and add them to orgs.json"*
+> *"List my merge policies for all sandboxes and update the profile"*
+
+Or use the tools directly and paste the values in manually:
+
+| What to discover | Tool to run | Field in orgs.json |
+|---|---|---|
+| Available sandbox names | `list_sandboxes` | `sandboxes.dev`, `sandboxes.prod` |
+| Primary identity namespace code + ID | `list_identity_namespaces` | `namespaces.<sandbox>.primary`, `primary_id` |
+| Default merge policy UUID | `list_merge_policies` | `merge_policies.<sandbox>.primary` |
+
+You can always edit `orgs.json` manually to correct or refine any discovered value.
+
+---
+
+## Guided setup wizard (all-in-one)
+
+For a fully interactive setup that collects credentials AND auto-discovers all optional values in one session, open Claude Code in the repo directory and run:
 
 ```
 /aep-mcp-setup
 ```
 
-The wizard will collect your credentials, auto-discover your sandboxes, identity namespace IDs, and merge policy IDs, and write a complete `orgs.json` for you.
+The wizard walks you through credentials → sandboxes → namespaces → merge policies and writes a complete `orgs.json` in one go.
 
 ---
 
@@ -128,19 +141,6 @@ Useful tools:
 - `get_current_org` — show active org and sandbox
 - `switch_sandbox` — switch sandbox within current org (accepts alias or full name)
 - `reset_sandbox` — return to profile default
-
----
-
-## Finding required values
-
-### Sandbox names
-In the AEP UI, click the sandbox switcher in the top-right corner, or run `list_sandboxes` after connecting.
-
-### Identity namespace code and ID
-Run `list_identity_namespaces` after connecting. Find your primary identity namespace (e.g. `Email`, `ECID`, or a custom one like `CRMID`) and note its `id` (integer) and `code` (string). Add these to `orgs.json` under `namespaces`.
-
-### Merge policy IDs
-Run `list_merge_policies` after connecting. Note the UUID of your default (or Edge-activated) merge policy and add it to `orgs.json` under `merge_policies`.
 
 ---
 

@@ -41,9 +41,9 @@ Ask the user for the following (one at a time, be conversational):
 
 Also ask: do they want to configure **multiple sandboxes** (dev + prod aliases) for this profile?
 
-### 3. Write a temporary profile and test the connection
+### 3. Write the minimal profile and test the connection
 
-Once you have credentials, write a minimal `orgs.json` (or add to existing):
+These 5 fields are all that's required to connect. Write them to `orgs.json` (or add to existing):
 
 ```json
 {
@@ -59,6 +59,8 @@ Once you have credentials, write a minimal `orgs.json` (or add to existing):
   }
 }
 ```
+
+Tell the user: **"This is all you need to start. Steps 4–6 will auto-discover and add the optional values (sandbox aliases, namespace IDs, merge policies). You can skip them now and add those later."**
 
 Then test the connection by running:
 ```bash
