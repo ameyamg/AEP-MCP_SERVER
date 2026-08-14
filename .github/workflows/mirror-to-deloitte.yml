@@ -1,0 +1,20 @@
+name: Mirror to Deloitte Org
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["**"]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history + all refs)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push mirror to Deloitte org
+        run: |
+          git remote add deloitte https://x-access-token:${{ secrets.DELOITTE_MIRROR_PAT }}@github.com/Deloitte-US-Consulting/AEP_MCP_SERVER.git
+          git push deloitte --mirror
