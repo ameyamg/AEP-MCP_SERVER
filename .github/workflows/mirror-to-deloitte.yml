@@ -15,6 +15,7 @@ jobs:
           fetch-depth: 0
 
       - name: Push mirror to Deloitte org
+        env:
+          PAT: ${{ secrets.DELOITTE_MIRROR_PAT }}
         run: |
-          git remote add deloitte https://x-access-token:${{ secrets.DELOITTE_MIRROR_PAT }}@github.com/Deloitte-US-Consulting/AEP_MCP_SERVER.git
-          git push deloitte --mirror
+          git push "https://x-access-token:${PAT}@github.com/Deloitte-US-Consulting/AEP_MCP_SERVER.git" --mirror
