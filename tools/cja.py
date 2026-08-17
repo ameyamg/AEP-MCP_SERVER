@@ -240,12 +240,18 @@ def register(mcp) -> None:
 
     @mcp.tool()
     @track("cja_delete_calculated_metric")
-    def cja_delete_calculated_metric(metric_id: str) -> dict:
-        """Delete a CJA calculated metric.
+    def cja_delete_calculated_metric(metric_id: str, confirm: bool = False) -> dict:
+        """Delete a CJA calculated metric. Requires confirm=True to execute.
 
         Args:
             metric_id: Calculated metric ID to delete.
+            confirm: Must be True to execute. Default False returns a warning.
         """
+        if not confirm:
+            return {
+                "⚠️ WARNING": f"Calculated metric '{metric_id}' will be permanently deleted. Any reports or projects using it will break.",
+                "confirm_instructions": "Re-run with confirm=True to proceed.",
+            }
         try:
             result = cja_delete(f"/calculatedmetrics/{metric_id}")
             return result or {"status": "deleted", "id": metric_id}
@@ -350,12 +356,18 @@ def register(mcp) -> None:
 
     @mcp.tool()
     @track("cja_delete_filter")
-    def cja_delete_filter(filter_id: str) -> dict:
-        """Delete a CJA filter.
+    def cja_delete_filter(filter_id: str, confirm: bool = False) -> dict:
+        """Delete a CJA filter. Requires confirm=True to execute.
 
         Args:
             filter_id: Filter ID to delete.
+            confirm: Must be True to execute. Default False returns a warning.
         """
+        if not confirm:
+            return {
+                "⚠️ WARNING": f"CJA filter '{filter_id}' will be permanently deleted. Projects referencing it will be affected.",
+                "confirm_instructions": "Re-run with confirm=True to proceed.",
+            }
         try:
             result = cja_delete(f"/segments/{filter_id}")
             return result or {"status": "deleted", "id": filter_id}
@@ -458,12 +470,18 @@ def register(mcp) -> None:
 
     @mcp.tool()
     @track("cja_delete_project")
-    def cja_delete_project(project_id: str) -> dict:
-        """Delete a CJA Workspace project.
+    def cja_delete_project(project_id: str, confirm: bool = False) -> dict:
+        """Delete a CJA Workspace project. Requires confirm=True to execute.
 
         Args:
             project_id: Project ID to delete.
+            confirm: Must be True to execute. Default False returns a warning.
         """
+        if not confirm:
+            return {
+                "⚠️ WARNING": f"CJA Workspace project '{project_id}' will be permanently deleted along with all its panels and visualisations.",
+                "confirm_instructions": "Re-run with confirm=True to proceed.",
+            }
         try:
             result = cja_delete(f"/projects/{project_id}")
             return result or {"status": "deleted", "id": project_id}
@@ -532,12 +550,18 @@ def register(mcp) -> None:
 
     @mcp.tool()
     @track("cja_delete_annotation")
-    def cja_delete_annotation(annotation_id: str) -> dict:
-        """Delete a CJA annotation.
+    def cja_delete_annotation(annotation_id: str, confirm: bool = False) -> dict:
+        """Delete a CJA annotation. Requires confirm=True to execute.
 
         Args:
             annotation_id: Annotation ID to delete.
+            confirm: Must be True to execute. Default False returns a warning.
         """
+        if not confirm:
+            return {
+                "⚠️ WARNING": f"CJA annotation '{annotation_id}' will be permanently deleted.",
+                "confirm_instructions": "Re-run with confirm=True to proceed.",
+            }
         try:
             result = cja_delete(f"/annotations/{annotation_id}")
             return result or {"status": "deleted", "id": annotation_id}

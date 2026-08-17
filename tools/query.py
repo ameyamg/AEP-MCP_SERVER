@@ -91,13 +91,19 @@ def register(mcp) -> None:
 
     @mcp.tool()
     @track("cancel_query")
-    def cancel_query(query_id: str, sandbox: str = "") -> dict:
-        """Cancel an in-progress query.
+    def cancel_query(query_id: str, confirm: bool = False, sandbox: str = "") -> dict:
+        """Cancel an in-progress query. Requires confirm=True to execute.
 
         Args:
             query_id: Query ID to cancel.
+            confirm: Must be True to execute. Default False returns a warning.
             sandbox: Sandbox name.
         """
+        if not confirm:
+            return {
+                "⚠️ WARNING": "This will cancel query '{query_id}'. Any partial results will be lost and the query cannot be resumed.".format(query_id=query_id),
+                "confirm_instructions": "Re-run with confirm=True to proceed.",
+            }
         try:
             result = aep_delete(
                 f"/data/foundation/query/queries/{query_id}",

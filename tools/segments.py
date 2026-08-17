@@ -92,13 +92,20 @@ def register(mcp) -> None:
 
     @mcp.tool()
     @track("delete_segment")
-    def delete_segment(segment_id: str, sandbox: str = "") -> dict:
-        """Delete a segment definition.
+    def delete_segment(segment_id: str, confirm: bool = False, sandbox: str = "") -> dict:
+        """Delete a segment definition. Requires confirm=True to execute.
 
         Args:
             segment_id: The segment definition ID to delete.
+            confirm: Must be True to execute. Default False returns a warning.
             sandbox: Sandbox name.
         """
+        if not confirm:
+            return {
+                "⚠️ WARNING": "DESTRUCTIVE OPERATION — confirmation required",
+                "what_will_happen": f"Segment definition '{segment_id}' will be permanently deleted. Any audiences built on it will stop evaluating.",
+                "confirm_instructions": "Re-run with confirm=True to proceed.",
+            }
         try:
             result = aep_delete(
                 f"/data/core/ups/segment/definitions/{segment_id}",

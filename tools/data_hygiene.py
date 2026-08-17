@@ -55,15 +55,24 @@ def register(mcp) -> None:
         expire_on: str,
         sandbox: str = "",
         description: str = "",
+        confirm: bool = False,
     ) -> dict:
-        """Schedule a dataset for automatic deletion on a future date.
+        """Schedule a dataset for automatic deletion on a future date. Requires confirm=True to execute.
 
         Args:
             dataset_id: AEP catalog dataset ID to expire.
             expire_on: ISO-8601 expiry date (e.g. '2025-12-31').
             sandbox: Sandbox name.
             description: Optional reason / description.
+            confirm: Must be True to execute. Default False returns a warning.
         """
+        if not confirm:
+            return {
+                "⚠️ WARNING": "DESTRUCTIVE OPERATION — confirmation required",
+                "what_will_happen": f"Dataset '{dataset_id}' and ALL its data will be permanently deleted on {expire_on}. This cannot be undone.",
+                "tip": "Use cancel_dataset_expiration to reverse this before the expiry date.",
+                "confirm_instructions": "Re-run with confirm=True to proceed.",
+            }
         try:
             body: dict = {"datasetId": dataset_id, "expiry": expire_on}
             if description:
@@ -137,8 +146,9 @@ def register(mcp) -> None:
         identities: list,
         sandbox: str = "",
         description: str = "",
+        confirm: bool = False,
     ) -> dict:
-        """Submit a record delete work order to remove specific identities from a dataset.
+        """Submit a record delete work order to remove specific identities from a dataset. Requires confirm=True.
 
         Args:
             dataset_id: Target dataset ID.
@@ -146,7 +156,21 @@ def register(mcp) -> None:
                         Example: [{"namespace": "Email", "id": "user@example.com"}]
             sandbox: Sandbox name.
             description: Optional description / legal basis.
+            confirm: Must be True to execute. Default False returns a warning.
         """
+        if not confirm:
+            id_preview = ", ".join(f"{i.get('namespace')}:{i.get('id')}" for i in identities[:3])
+            if len(identities) > 3:
+                id_preview += f" ... and {len(identities) - 3} more"
+            return {
+                "⚠️ WARNING": "CRITICAL DESTRUCTIVE OPERATION — confirmation required",
+                "what_will_happen": (
+                    f"Profile records for {len(identities)} identit{'y' if len(identities) == 1 else 'ies'} "
+                    f"({id_preview}) will be permanently and irreversibly deleted from dataset '{dataset_id}'. "
+                    "This cannot be undone."
+                ),
+                "confirm_instructions": "Re-run with confirm=True to proceed.",
+            }
         try:
             body: dict = {
                 "datasetId": dataset_id,
