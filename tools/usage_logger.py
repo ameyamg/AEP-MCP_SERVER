@@ -25,7 +25,8 @@ from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Optional
 
-LOG_FILE = os.getenv("AEP_USAGE_LOG", "aep_usage.csv")
+_DEFAULT_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "aep_usage.csv")
+LOG_FILE = os.getenv("AEP_USAGE_LOG", _DEFAULT_LOG)
 
 _FIELDNAMES = [
     "timestamp",
