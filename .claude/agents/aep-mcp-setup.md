@@ -64,7 +64,7 @@ Tell the user: **"This is all you need to start. Steps 4–6 will auto-discover 
 
 Then test the connection by running:
 ```bash
-python -c "
+python3 -c "
 from auth import get_access_token, set_active_profile
 set_active_profile('<profile_name>')
 print('Token obtained:', get_access_token()[:20], '...')
@@ -77,7 +77,7 @@ If the token fails, help the user debug (wrong credentials, missing API product 
 
 Run:
 ```bash
-python -c "
+python3 -c "
 import json, httpx
 from auth import get_headers, AEP_BASE, set_active_profile
 set_active_profile('<profile_name>')
@@ -93,7 +93,7 @@ Show the user their available sandboxes and ask which ones to map to `dev` and `
 
 Run for each sandbox the user wants to configure:
 ```bash
-python -c "
+python3 -c "
 import json, httpx
 from auth import get_headers, AEP_BASE, set_active_profile
 set_active_profile('<profile_name>')
@@ -110,7 +110,7 @@ Ask the user which namespace is their **primary identity** for profile stitching
 
 Run for each sandbox:
 ```bash
-python -c "
+python3 -c "
 import json, httpx
 from auth import get_headers, AEP_BASE, set_active_profile
 set_active_profile('<profile_name>')
@@ -173,23 +173,23 @@ Show the user exactly what to add to their `.claude/mcp_servers.json`:
 ```json
 {
   "aep": {
-    "command": "python",
+    "command": "/absolute/path/to/aep-mcp-server/.venv/bin/python",
     "args": ["/absolute/path/to/aep-mcp-server/server.py"]
   }
 }
 ```
 
-Tell them to replace `/absolute/path/to/` with the actual path on their machine (run `pwd` in the repo directory to get it).
+Tell them to replace `/absolute/path/to/aep-mcp-server` with the actual path on their machine (run `pwd` in the repo directory to get it). Emphasise using the **venv Python path** (`.venv/bin/python`), not `python` or `python3`, so the MCP client finds the installed packages regardless of the system environment.
 
 Optionally, if they want the RT-CDP proxy too:
 ```json
 {
   "aep": {
-    "command": "python",
+    "command": "/absolute/path/to/aep-mcp-server/.venv/bin/python",
     "args": ["/absolute/path/to/aep-mcp-server/server.py"]
   },
   "rtcdp": {
-    "command": "python",
+    "command": "/absolute/path/to/aep-mcp-server/.venv/bin/python",
     "args": ["/absolute/path/to/aep-mcp-server/rtcdp_proxy.py"]
   }
 }
@@ -199,7 +199,7 @@ Optionally, if they want the RT-CDP proxy too:
 
 Run a quick smoke test:
 ```bash
-python -c "
+python3 -c "
 from auth import set_active_profile, get_active_sandbox
 set_active_profile('<profile_name>')
 print('Active sandbox:', get_active_sandbox())

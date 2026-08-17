@@ -2,7 +2,7 @@
 name: aep-mcp-server
 description: >-
   Execute operations directly inside Adobe Experience Platform (AEP) and Adobe
-  Journey Optimizer (AJO) using 115+ MCP tools — query real-time profiles,
+  Journey Optimizer (AJO) using 137+ MCP tools — query real-time profiles,
   inspect or create XDM schemas and datasets, run ad-hoc SQL, build audience
   segments, orchestrate Flow Service dataflows, ingest data, manage AJO
   journeys and offer decisioning, and switch between multiple client org

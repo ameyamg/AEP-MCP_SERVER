@@ -1,6 +1,6 @@
 # AEP MCP Server — Onboarding Guide
 
-A FastMCP server that exposes **115+ Adobe Experience Platform and AJO tools** directly inside Claude. Query datasets, inspect schemas, look up profiles, run SQL, manage segments, build journeys, configure dataflows, and more — all through natural language.
+A FastMCP server that exposes **137+ Adobe Experience Platform and AJO tools** directly inside Claude. Query datasets, inspect schemas, look up profiles, run SQL, manage segments, build journeys, configure dataflows, and more — all through natural language.
 
 ---
 
@@ -44,6 +44,8 @@ A FastMCP server that exposes **115+ Adobe Experience Platform and AJO tools** d
 ```bash
 git clone https://github.com/amghanekar-deloitte/AEP-MCP_SERVER.git
 cd AEP-MCP_SERVER
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -81,13 +83,15 @@ Add to `.claude/mcp_servers.json` (create if it doesn't exist):
 ```json
 {
   "aep": {
-    "command": "python",
+    "command": "/absolute/path/to/AEP-MCP_SERVER/.venv/bin/python",
     "args": ["/absolute/path/to/AEP-MCP_SERVER/server.py"]
   }
 }
 ```
 
-Run `pwd` in the repo directory to get the absolute path.
+Run `pwd` in the repo directory to get the absolute path, then substitute it for `/absolute/path/to/AEP-MCP_SERVER`.
+
+> **Use the venv Python path**, not `python` or `python3` — MCP clients launch the server outside any active shell, so the system `python3` may not have the required packages installed.
 
 ### 4. Restart Claude Code
 
@@ -151,11 +155,11 @@ To also expose Adobe's official Real-Time CDP MCP tools, add a second entry to `
 ```json
 {
   "aep": {
-    "command": "python",
+    "command": "/absolute/path/to/AEP-MCP_SERVER/.venv/bin/python",
     "args": ["/absolute/path/to/AEP-MCP_SERVER/server.py"]
   },
   "rtcdp": {
-    "command": "python",
+    "command": "/absolute/path/to/AEP-MCP_SERVER/.venv/bin/python",
     "args": ["/absolute/path/to/AEP-MCP_SERVER/rtcdp_proxy.py"]
   }
 }
@@ -177,7 +181,7 @@ Set `RTCDP_MCP_URL` in your `.env` if the upstream URL differs from the default 
 
 | Symptom | Fix |
 |---------|-----|
-| `ModuleNotFoundError: mcp` | Run `pip install -r requirements.txt` |
+| `ModuleNotFoundError: mcp` | Run `pip install -r requirements.txt` inside the activated venv, then use the venv Python path in your MCP config |
 | `401 Unauthorized` | Check `client_id`, `client_secret`, `org_id` in `orgs.json`; verify the Experience Platform API product is added in Developer Console |
 | `403 Forbidden` | Your technical account may lack the required product profile permissions in AEP Admin Console |
 | Wrong sandbox returned | Set `sandbox` in your profile or `AEP_SANDBOX_NAME` env var |

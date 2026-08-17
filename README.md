@@ -4,7 +4,7 @@ Two MCP servers that give Claude (and any MCP-compatible client) natural-languag
 
 | Server | File | Tools | Description |
 |--------|------|-------|-------------|
-| **AEP** (custom-built) | `server.py` | 115+ | Full AEP/AJO API coverage built with FastMCP |
+| **AEP** (custom-built) | `server.py` | 137+ | Full AEP/AJO API coverage built with FastMCP |
 | **RT-CDP** (Adobe official proxy) | `rtcdp_proxy.py` | 18 | Proxies Adobe's official `rtcdp-mcp.adobe.io` server |
 
 ---
@@ -14,6 +14,8 @@ Two MCP servers that give Claude (and any MCP-compatible client) natural-languag
 ### 1. Install dependencies
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -47,29 +49,31 @@ Or add manually to `.claude/mcp_servers.json`:
 ```json
 {
   "aep": {
-    "command": "python",
+    "command": "/path/to/aep-mcp-server/.venv/bin/python",
     "args": ["/path/to/aep-mcp-server/server.py"]
   },
   "rtcdp": {
-    "command": "python",
+    "command": "/path/to/aep-mcp-server/.venv/bin/python",
     "args": ["/path/to/aep-mcp-server/rtcdp_proxy.py"]
   }
 }
 ```
+
+> Use the **absolute path to the venv Python** (`.venv/bin/python`) so the MCP client finds the right interpreter regardless of the system `python3` or any active conda environment.
 
 ### 4. Install the pre-commit hook (recommended)
 
 Blocks accidental credential commits:
 
 ```bash
-python scripts/install_hooks.py
+python3 scripts/install_hooks.py
 ```
 
 ### 5. Run
 
 ```bash
-python server.py                        # AEP server, default org profile
-AEP_PROFILE=MyClient python server.py  # start with a specific profile
+python3 server.py                        # AEP server, default org profile
+AEP_PROFILE=MyClient python3 server.py  # start with a specific profile
 ```
 
 ---
