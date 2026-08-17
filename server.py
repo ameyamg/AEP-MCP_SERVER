@@ -28,6 +28,7 @@ from tools import (
     data_hygiene,
     data_prep,
     datasets,
+    erd,
     flows,
     observability,
     orgs,
@@ -55,6 +56,7 @@ mcp = FastMCP(
 
 # Register all tool domains
 datasets.register(mcp)
+erd.register(mcp)
 schemas.register(mcp)
 profiles.register(mcp)
 segments.register(mcp)
