@@ -37,6 +37,10 @@ _TYPE_MAP = {
 _SKIP_FIELDS = {"_id", "timestamp", "eventType", "identityMap", "repositoryCreatedBy",
                 "repositoryLastModifiedBy", "createdByBatchID", "modifiedByBatchID"}
 
+# XDM class URIs used to determine cardinality for inferred relationships
+_CLASS_PROFILE = "https://ns.adobe.com/xdm/context/profile"
+_CLASS_EVENT   = "https://ns.adobe.com/xdm/context/experienceevent"
+
 
 def _safe_name(title: str) -> str:
     """Make a schema title safe for Mermaid identifiers."""
@@ -194,12 +198,19 @@ def register(mcp) -> None:
             descriptors = desc_resp.get("results", [])
 
             # Build identity map: schema $id → set of identity field names (PKs)
+            # Also build namespace map: namespace code → list of schema $ids (for inferred rels)
             pk_map: dict[str, set] = {}
+            ns_map: dict[str, list] = {}   # namespace → [schema_id, ...]
             for d in descriptors:
                 if d.get("@type") == "xdm:descriptorIdentity":
                     src = d.get("xdm:sourceSchema", "")
                     field = d.get("xdm:sourceProperty", "").lstrip("/").split("/")[-1]
+                    ns = d.get("xdm:namespace", "")
                     pk_map.setdefault(src, set()).add(field)
+                    if ns and src:
+                        ns_map.setdefault(ns, [])
+                        if src not in ns_map[ns]:
+                            ns_map[ns].append(src)
 
             # Relationship descriptors
             rel_descs = [d for d in descriptors if d.get("@type") == "xdm:descriptorRelationship"]
@@ -245,22 +256,67 @@ def register(mcp) -> None:
                     lines.append(f"        string id PK")
                 lines.append("    }")
 
-            # Add relationship lines
+            # Schema class lookup: $id → class URI
+            schema_class = {s.get("$id", ""): s.get("meta:class", "") for s in schemas_data}
+
+            def _cardinality(src_id: str, dst_id: str) -> str:
+                """Return Mermaid cardinality string based on schema classes."""
+                src_cls = schema_class.get(src_id, "")
+                dst_cls = schema_class.get(dst_id, "")
+                if _CLASS_PROFILE in src_cls and _CLASS_EVENT in dst_cls:
+                    return "||--o{"   # one profile → many events
+                if _CLASS_EVENT in src_cls and _CLASS_PROFILE in dst_cls:
+                    return "}o--||"   # many events → one profile
+                if _CLASS_PROFILE in src_cls:
+                    return "||--o{"   # profile → lookup (one-to-many assumed)
+                if _CLASS_PROFILE in dst_cls:
+                    return "}o--||"   # lookup → profile
+                return "}o--o{"       # unknown / lookup-to-lookup
+
+            # Add explicit relationship lines
             included_ids = set(id_to_name.keys())
+            explicit_pairs: set[frozenset] = set()
             for d in rel_descs:
                 src_id = d.get("xdm:sourceSchema", "")
                 dst_id = d.get("xdm:destinationSchema", "")
                 label = d.get("xdm:label", "relates_to").replace(" ", "_")
                 if src_id in included_ids and dst_id in included_ids:
-                    lines.append(
-                        f'    {id_to_name[src_id]} }}o--|| {id_to_name[dst_id]} : "{label}"'
-                    )
+                    card = _cardinality(src_id, dst_id)
+                    lines.append(f'    {id_to_name[src_id]} {card} {id_to_name[dst_id]} : "{label}"')
+                    explicit_pairs.add(frozenset({src_id, dst_id}))
+
+            # Add inferred relationship lines (shared identity namespace)
+            inferred_count = 0
+            for ns, schema_ids_for_ns in ns_map.items():
+                in_scope = [sid for sid in schema_ids_for_ns if sid in included_ids]
+                if len(in_scope) < 2:
+                    continue
+                # Draw hub-and-spoke from the first profile schema, or all pairs if none
+                profile_hubs = [s for s in in_scope if _CLASS_PROFILE in schema_class.get(s, "")]
+                spokes = [s for s in in_scope if s not in profile_hubs]
+                pairs = (
+                    [(hub, spoke) for hub in profile_hubs for spoke in spokes]
+                    if profile_hubs else
+                    [(in_scope[i], in_scope[j]) for i in range(len(in_scope)) for j in range(i+1, len(in_scope))]
+                )
+                for src_id, dst_id in pairs:
+                    if frozenset({src_id, dst_id}) in explicit_pairs:
+                        continue   # already drawn as explicit
+                    card = _cardinality(src_id, dst_id)
+                    label = f"~{ns}"   # ~ prefix signals inferred
+                    lines.append(f'    {id_to_name[src_id]} {card} {id_to_name[dst_id]} : "{label}"')
+                    explicit_pairs.add(frozenset({src_id, dst_id}))
+                    inferred_count += 1
 
             return {
                 "mermaid": "\n".join(lines),
                 "schema_count": len(schemas_data),
                 "schemas_included": [s.get("title", s.get("$id", "")) for s in schemas_data],
-                "tip": "Ask Claude to render this as a Mermaid diagram, or paste the 'mermaid' value into mermaid.live",
+                "inferred_relationships": inferred_count,
+                "tip": (
+                    "Relationships labeled '~NamespaceName' are inferred from shared identity namespaces. "
+                    "Ask Claude to render this as a Mermaid diagram, or paste into mermaid.live"
+                ),
             }
 
         except Exception as exc:
