@@ -22,6 +22,7 @@ load_dotenv()
 from mcp.server.fastmcp import FastMCP
 from tools import (
     access_control,
+    architect,
     ajo,
     cja,
     computed_attributes,
@@ -56,6 +57,7 @@ mcp = FastMCP(
 )
 
 # Register all tool domains
+architect.register(mcp)
 datasets.register(mcp)
 design.register(mcp)
 erd.register(mcp)

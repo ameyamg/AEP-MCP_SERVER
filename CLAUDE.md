@@ -44,6 +44,7 @@ tools/
   data_prep.py             # Data Prep: mapping sets, functions, expression validation
   computed_attributes.py   # Computed Attributes
   access_control.py        # ABAC: roles, permissions, policies, effective policies
+  architect.py             # Architect-phase templates: data-layer spec, journey canvas
   orgs.py                  # Multi-org tools: list_org_profiles, switch_org_profile, get_current_org
   usage_logger.py          # @track decorator — logs tool calls to AEP_USAGE_LOG (CSV)
 ```
@@ -102,6 +103,19 @@ Credentials come from Adobe Developer Console → Project → OAuth Server-to-Se
 
 - **OAuth S2S** (recommended): set `client_id` + `client_secret` — token auto-refreshes before expiry, per-profile cache
 - **Static token** (dev/testing): set `access_token` — no auto-refresh
+
+## Adobe Documentation Skills
+
+Four Claude Code skills are bundled in `.claude/skills/` and available automatically when working in this repo:
+
+| Slash command | Covers |
+|---|---|
+| `/aep` | XDM, Data Ingestion, Sources, Real-Time Customer Profile, Identity, Segmentation, Destinations, Query Service, Data Governance, Web SDK, Sandboxes |
+| `/ajo` | Journeys, Campaigns, Offers, Offer Decisioning, Messages, Channels |
+| `/cja` | Customer Journey Analytics, Data Views, Workspace reports, Calculated Metrics |
+| `/rtcdp` | Destinations, Audience Activation, B2B/B2P, Data Governance |
+
+Each skill fetches live content from Adobe Experience League and quotes with citations — it never answers from memory. Use these whenever you need to look up API behaviour, limits, or best practices before implementing.
 
 ## Dependencies
 

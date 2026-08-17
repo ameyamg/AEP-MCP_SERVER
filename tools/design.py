@@ -199,6 +199,14 @@ def register(mcp) -> None:
                     "(4) any risks or Adobe-specific gotchas to flag before implementation. "
                     "Do NOT start implementing — present the design for user approval first."
                 ),
+                "documentation_skills": (
+                    "For deeper Adobe documentation on any topic, use the built-in slash skills: "
+                    "/aep (XDM, ingestion, profiles, segmentation, Query Service, governance), "
+                    "/ajo (journeys, campaigns, offers, decisioning), "
+                    "/cja (Customer Journey Analytics, data views, reports), "
+                    "/rtcdp (destinations, audience activation, data governance). "
+                    "These fetch live content from Adobe Experience League with cited sources."
+                ),
             }
 
         except Exception as exc:
