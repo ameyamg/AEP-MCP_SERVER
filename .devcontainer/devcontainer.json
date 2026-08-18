@@ -1,0 +1,18 @@
+{
+  "name": "AEP MCP Server",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "secrets": {
+    "ORGS_JSON": {
+      "description": "Full contents of orgs.json — copy from orgs.example.json, fill in your Adobe credentials, and paste the entire JSON here."
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}
