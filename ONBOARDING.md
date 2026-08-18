@@ -44,10 +44,12 @@ A FastMCP server that exposes **137+ Adobe Experience Platform and AJO tools** d
 ```bash
 git clone https://github.com/amghanekar-deloitte/AEP-MCP_SERVER.git
 cd AEP-MCP_SERVER
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+./setup.sh
 ```
+
+`setup.sh` creates the `.venv`, installs all dependencies, installs the pre-commit hook, copies `orgs.example.json` → `orgs.json` if not present, and prints the exact MCP config JSON with the correct venv Python path for your machine.
+
+> **Windows:** run the steps manually — `python3 -m venv .venv`, `.venv\Scripts\activate`, `pip install -r requirements.txt`.
 
 ### 2. Configure credentials — required fields only
 

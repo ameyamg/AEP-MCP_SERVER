@@ -11,21 +11,22 @@ Two MCP servers that give Claude (and any MCP-compatible client) natural-languag
 
 ## Quick Start
 
-### 1. Install dependencies
+### 1. Run the setup script
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+./setup.sh
 ```
+
+This creates a `.venv`, installs all dependencies, installs the pre-commit hook, and prints the exact MCP config JSON to paste — including the correct absolute venv Python path for your machine.
+
+> **Windows:** run the steps manually — `python3 -m venv .venv`, `.venv\Scripts\activate`, `pip install -r requirements.txt`.
 
 ### 2. Configure credentials
 
-Copy the example and fill in your credentials from **Adobe Developer Console → Project → OAuth Server-to-Server**:
+Fill in your credentials from **Adobe Developer Console → Project → OAuth Server-to-Server**:
 
 ```bash
-cp orgs.example.json orgs.json
-# edit orgs.json with your client_id, client_secret, org_id, sandbox
+# orgs.json was created by setup.sh — edit it now
 ```
 
 Or use environment variables (single-org fallback):
@@ -37,39 +38,20 @@ cp .env.example .env
 
 ### 3. Register with Claude Code
 
-Copy `.mcp.json.example` to `.mcp.json` and update the paths:
-
-```bash
-cp .mcp.json.example .mcp.json
-# edit .mcp.json — update /path/to/aep-mcp-server to your actual path
-```
-
-Or add manually to `.claude/mcp_servers.json`:
+Paste the JSON printed by `setup.sh` into `.claude/mcp_servers.json`, for example:
 
 ```json
 {
   "aep": {
     "command": "/path/to/aep-mcp-server/.venv/bin/python",
     "args": ["/path/to/aep-mcp-server/server.py"]
-  },
-  "rtcdp": {
-    "command": "/path/to/aep-mcp-server/.venv/bin/python",
-    "args": ["/path/to/aep-mcp-server/rtcdp_proxy.py"]
   }
 }
 ```
 
-> Use the **absolute path to the venv Python** (`.venv/bin/python`) so the MCP client finds the right interpreter regardless of the system `python3` or any active conda environment.
+> Always use the **venv Python path** — MCP clients launch the server outside any active shell, so bare `python3` won't find the installed packages.
 
-### 4. Install the pre-commit hook (recommended)
-
-Blocks accidental credential commits:
-
-```bash
-python3 scripts/install_hooks.py
-```
-
-### 5. Run
+### 4. Run
 
 ```bash
 python3 server.py                        # AEP server, default org profile
