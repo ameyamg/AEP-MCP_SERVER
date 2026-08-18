@@ -32,6 +32,20 @@ elif [[ ! -f "$REPO_DIR/orgs.json" ]]; then
   echo "   Codespace secret so future Codespaces are fully automatic."
 fi
 
+# ── .mcp.json for Claude Code ────────────────────────────────────────────────
+
+cat > "$REPO_DIR/.mcp.json" <<EOF
+{
+  "mcpServers": {
+    "aep": {
+      "command": "$REPO_DIR/.venv/bin/python",
+      "args": ["$REPO_DIR/server.py"]
+    }
+  }
+}
+EOF
+echo ".mcp.json written  ✓"
+
 # ── Claude Code CLI ──────────────────────────────────────────────────────────
 
 if command -v npm &>/dev/null; then
