@@ -32,6 +32,13 @@ elif [[ ! -f "$REPO_DIR/orgs.json" ]]; then
   echo "   Codespace secret so future Codespaces are fully automatic."
 fi
 
+# ── Claude Code CLI ──────────────────────────────────────────────────────────
+
+if command -v npm &>/dev/null; then
+  echo "Installing Claude Code CLI..."
+  npm install -g @anthropic-ai/claude-code --silent && echo "Claude Code installed  ✓"
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""

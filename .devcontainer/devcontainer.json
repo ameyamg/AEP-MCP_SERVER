@@ -1,6 +1,11 @@
 {
   "name": "AEP MCP Server",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "secrets": {
     "ORGS_JSON": {
