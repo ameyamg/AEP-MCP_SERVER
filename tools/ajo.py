@@ -11,9 +11,10 @@ Verify exact paths against the AJO REST API reference at:
 
 import base64
 import json
+import time
 from datetime import datetime, timezone
 
-from auth import aep_get, aep_post
+from auth import aep_get, aep_post, get_active_sandbox
 from tools.usage_logger import track
 
 _AJO = "/data/core/ajo"
@@ -525,6 +526,265 @@ def register(mcp) -> None:
             return {
                 "merge_policy_count": len(policies),
                 "results_by_merge_policy": results,
+            }
+
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    # ── Journey profile participation ─────────────────────────────────────────
+
+    @mcp.tool()
+    @track("get_member_active_journeys")
+    def get_member_active_journeys(
+        identity_id: str,
+        identity_namespace: str = "ProxyID",
+        lookback_days: int = 30,
+        sandbox: str = "",
+    ) -> dict:
+        """List AJO journeys a member is currently active in, with their current step.
+
+        Queries the journey step events dataset via Query Service to find journey
+        instances where the member entered but has not yet reached an end node
+        within the lookback window. Polls up to ~15 s for results.
+
+        Args:
+            identity_id: Member identity value (e.g. "C7P41BBBBPXZ").
+            identity_namespace: Namespace code (default ProxyID).
+            lookback_days: Days back to search for journey entry events (default 30).
+            sandbox: Sandbox name.
+        """
+        try:
+            effective_sandbox = sandbox or get_active_sandbox()
+
+            # Discover the journey step events dataset
+            ds_resp = aep_get(
+                "/catalog/dataSets",
+                sandbox=sandbox or None,
+                params={"limit": 100, "orderBy": "-created"},
+            )
+            ds_map = ds_resp if isinstance(ds_resp, dict) else {}
+            jse_name: str = ""
+            for _ds_id, ds in ds_map.items():
+                name = (ds.get("name") or "").lower()
+                if "journey" in name and "step" in name:
+                    jse_name = ds.get("name", "")
+                    break
+
+            if not jse_name:
+                return {
+                    "error": (
+                        "No journey step events dataset found in this sandbox. "
+                        "Ensure AJO is active and at least one journey has been published."
+                    )
+                }
+
+            sql = f"""
+WITH events AS (
+    SELECT
+        timestamp,
+        _experience.journeyOrchestration.stepEvents.journeyVersionID   AS journey_version_id,
+        _experience.journeyOrchestration.stepEvents.journeyVersionName AS journey_name,
+        _experience.journeyOrchestration.stepEvents.instanceID         AS instance_id,
+        _experience.journeyOrchestration.stepEvents.nodeName           AS node_name,
+        _experience.journeyOrchestration.stepEvents.nodeType           AS node_type,
+        _experience.journeyOrchestration.stepEvents.stepStatus         AS step_status,
+        ROW_NUMBER() OVER (
+            PARTITION BY _experience.journeyOrchestration.stepEvents.instanceID
+            ORDER BY timestamp DESC
+        ) AS rn
+    FROM "{jse_name}"
+    WHERE identityMap['{identity_namespace}'][0].id = '{identity_id}'
+      AND timestamp >= CURRENT_TIMESTAMP - INTERVAL '{lookback_days}' DAY
+)
+SELECT
+    latest.journey_version_id,
+    latest.journey_name,
+    latest.instance_id,
+    latest.node_name     AS current_node,
+    latest.node_type     AS current_node_type,
+    latest.step_status   AS current_step_status,
+    latest.timestamp     AS last_event_time,
+    entry.min_ts         AS entry_time
+FROM events latest
+JOIN (
+    SELECT instance_id, MIN(timestamp) AS min_ts FROM events GROUP BY instance_id
+) entry ON latest.instance_id = entry.instance_id
+WHERE latest.rn = 1
+  AND LOWER(latest.node_type) NOT IN ('end', 'endevent', 'exit')
+ORDER BY latest.timestamp DESC
+""".strip()
+
+            body = {
+                "dbName": f"{effective_sandbox}:all",
+                "sql": sql,
+                "name": f"active_journeys_{identity_id[:12]}",
+            }
+            query = aep_post("/data/foundation/query/queries", body, sandbox=sandbox or None)
+            query_id = query.get("id", "")
+
+            # Poll up to ~15 s for results
+            for _ in range(5):
+                time.sleep(3)
+                status = aep_get(
+                    f"/data/foundation/query/queries/{query_id}",
+                    sandbox=sandbox or None,
+                )
+                state = status.get("state", "")
+                if state == "SUCCESS":
+                    return {
+                        "query_id": query_id,
+                        "state": state,
+                        "dataset": jse_name,
+                        "rowCount": status.get("rowCount", 0),
+                        "data": status.get("data") or status.get("result"),
+                    }
+                if state in ("FAILED", "CANCELLED"):
+                    return {
+                        "query_id": query_id,
+                        "state": state,
+                        "errors": status.get("errors"),
+                    }
+
+            return {
+                "query_id": query_id,
+                "state": "PENDING",
+                "message": "Query submitted. Use get_query to check status.",
+                "dataset": jse_name,
+            }
+
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    @mcp.tool()
+    @track("get_member_journey_history")
+    def get_member_journey_history(
+        identity_id: str,
+        identity_namespace: str = "ProxyID",
+        lookback_days: int = 90,
+        include_active: bool = True,
+        sandbox: str = "",
+    ) -> dict:
+        """Get a member's full journey participation history.
+
+        Queries the journey step events dataset via Query Service and returns every
+        journey instance the member has been part of — completed, exited, and
+        (optionally) still-active — within the lookback window. Polls up to ~15 s.
+
+        Args:
+            identity_id: Member identity value (e.g. "C7P41BBBBPXZ").
+            identity_namespace: Namespace code (default ProxyID).
+            lookback_days: Days back to search (default 90).
+            include_active: Include journeys still in progress (default True).
+            sandbox: Sandbox name.
+        """
+        try:
+            effective_sandbox = sandbox or get_active_sandbox()
+
+            # Discover the journey step events dataset
+            ds_resp = aep_get(
+                "/catalog/dataSets",
+                sandbox=sandbox or None,
+                params={"limit": 100, "orderBy": "-created"},
+            )
+            ds_map = ds_resp if isinstance(ds_resp, dict) else {}
+            jse_name: str = ""
+            for _ds_id, ds in ds_map.items():
+                name = (ds.get("name") or "").lower()
+                if "journey" in name and "step" in name:
+                    jse_name = ds.get("name", "")
+                    break
+
+            if not jse_name:
+                return {
+                    "error": (
+                        "No journey step events dataset found in this sandbox. "
+                        "Ensure AJO is active and at least one journey has been published."
+                    )
+                }
+
+            active_filter = (
+                ""
+                if include_active
+                else "AND LOWER(latest.node_type) IN ('end', 'endevent', 'exit')"
+            )
+
+            sql = f"""
+WITH events AS (
+    SELECT
+        timestamp,
+        _experience.journeyOrchestration.stepEvents.journeyVersionID   AS journey_version_id,
+        _experience.journeyOrchestration.stepEvents.journeyVersionName AS journey_name,
+        _experience.journeyOrchestration.stepEvents.instanceID         AS instance_id,
+        _experience.journeyOrchestration.stepEvents.nodeName           AS node_name,
+        _experience.journeyOrchestration.stepEvents.nodeType           AS node_type,
+        _experience.journeyOrchestration.stepEvents.stepStatus         AS step_status,
+        ROW_NUMBER() OVER (
+            PARTITION BY _experience.journeyOrchestration.stepEvents.instanceID
+            ORDER BY timestamp DESC
+        ) AS rn
+    FROM "{jse_name}"
+    WHERE identityMap['{identity_namespace}'][0].id = '{identity_id}'
+      AND timestamp >= CURRENT_TIMESTAMP - INTERVAL '{lookback_days}' DAY
+)
+SELECT
+    latest.journey_version_id,
+    latest.journey_name,
+    latest.instance_id,
+    latest.node_name   AS last_node,
+    latest.node_type   AS last_node_type,
+    latest.step_status AS last_step_status,
+    latest.timestamp   AS last_event_time,
+    entry.min_ts       AS entry_time,
+    CASE
+        WHEN LOWER(latest.node_type) IN ('end', 'endevent') THEN 'completed'
+        WHEN LOWER(latest.node_type) = 'exit'               THEN 'exited'
+        ELSE 'active'
+    END AS journey_status
+FROM events latest
+JOIN (
+    SELECT instance_id, MIN(timestamp) AS min_ts FROM events GROUP BY instance_id
+) entry ON latest.instance_id = entry.instance_id
+WHERE latest.rn = 1
+  {active_filter}
+ORDER BY latest.timestamp DESC
+""".strip()
+
+            body = {
+                "dbName": f"{effective_sandbox}:all",
+                "sql": sql,
+                "name": f"journey_history_{identity_id[:12]}",
+            }
+            query = aep_post("/data/foundation/query/queries", body, sandbox=sandbox or None)
+            query_id = query.get("id", "")
+
+            # Poll up to ~15 s for results
+            for _ in range(5):
+                time.sleep(3)
+                status = aep_get(
+                    f"/data/foundation/query/queries/{query_id}",
+                    sandbox=sandbox or None,
+                )
+                state = status.get("state", "")
+                if state == "SUCCESS":
+                    return {
+                        "query_id": query_id,
+                        "state": state,
+                        "dataset": jse_name,
+                        "rowCount": status.get("rowCount", 0),
+                        "data": status.get("data") or status.get("result"),
+                    }
+                if state in ("FAILED", "CANCELLED"):
+                    return {
+                        "query_id": query_id,
+                        "state": state,
+                        "errors": status.get("errors"),
+                    }
+
+            return {
+                "query_id": query_id,
+                "state": "PENDING",
+                "message": "Query submitted. Use get_query to check status.",
+                "dataset": jse_name,
             }
 
         except Exception as exc:
