@@ -43,6 +43,64 @@ def register(mcp) -> None:
             return {"error": str(exc)}
 
     @mcp.tool()
+    @track("run_query_sync")
+    def run_query_sync(
+        sql: str,
+        sandbox: str = "",
+        row_limit: int = 500,
+    ) -> dict:
+        """Execute a SQL query synchronously via the QS PostgreSQL endpoint and return rows inline.
+
+        Unlike run_query (which submits an async job), this connects directly to the
+        Query Service PostgreSQL interface and returns results immediately — no polling,
+        no output dataset required. Best for SELECT queries up to a few thousand rows.
+
+        Args:
+            sql: SQL statement to execute.
+            sandbox: Sandbox name (defaults to active profile sandbox).
+            row_limit: Max rows to return (default 500, max 5000).
+        """
+        try:
+            import psycopg2
+            from auth import get_active_sandbox
+
+            effective_sandbox = sandbox or get_active_sandbox()
+
+            # Fetch fresh connection parameters (includes org-scoped token + host)
+            cp = aep_get(
+                "/data/foundation/query/connection_parameters",
+                sandbox=effective_sandbox,
+            )
+
+            conn = psycopg2.connect(
+                host=cp["host"],
+                port=cp["port"],
+                dbname=cp["dbName"],
+                user=cp["username"],
+                password=cp["token"],
+                sslmode="require",
+                connect_timeout=30,
+            )
+            try:
+                cur = conn.cursor()
+                cur.execute(sql)
+                cols = [d[0] for d in cur.description] if cur.description else []
+                limit = min(max(1, row_limit), 5000)
+                rows = cur.fetchmany(limit)
+                result_rows = [dict(zip(cols, row)) for row in rows]
+                cur.close()
+            finally:
+                conn.close()
+
+            return {
+                "rowCount": len(result_rows),
+                "columns": cols,
+                "rows": result_rows,
+            }
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    @mcp.tool()
     @track("list_queries")
     def list_queries(
         sandbox: str = "",
