@@ -289,12 +289,17 @@ def aep_post(
     *,
     sandbox: Optional[str] = None,
     accept: Optional[str] = None,
+    content_type: Optional[str] = None,
 ) -> Any:
     """POST request against the AEP API."""
-    extra = {"Accept": accept} if accept else None
+    extra: dict = {}
+    if accept:
+        extra["Accept"] = accept
+    if content_type:
+        extra["Content-Type"] = content_type
     resp = httpx.post(
         f"{AEP_BASE}{path}",
-        headers=get_headers(sandbox, extra),
+        headers=get_headers(sandbox, extra or None),
         json=body,
         timeout=30,
     )
