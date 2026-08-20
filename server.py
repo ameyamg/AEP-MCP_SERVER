@@ -33,7 +33,9 @@ from tools import (
     erd,
     flows,
     observability,
+    offer_viewer,
     orgs,
+    profile_viewer,
     profiles,
     query,
     schemas,
@@ -62,6 +64,8 @@ datasets.register(mcp)
 design.register(mcp)
 erd.register(mcp)
 schemas.register(mcp)
+offer_viewer.register(mcp)
+profile_viewer.register(mcp)
 profiles.register(mcp)
 segments.register(mcp)
 query.register(mcp)

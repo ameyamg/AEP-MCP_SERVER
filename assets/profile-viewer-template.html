@@ -1,0 +1,465 @@
+<!--
+  AEP Member Profile Viewer — Display Template
+  =============================================
+  Reusable artifact template for rendering get_profile_by_identity results.
+  Two modes: Formatted (structured sections with badges/ledger) and Raw JSON
+  (full profile with syntax highlighting + per-section expandable { } panels).
+
+  HOW TO USE:
+  1. Call get_profile_by_identity and capture the full response.
+  2. Replace PROFILE_CONFIG with the member's metadata (proxy ID, entity ID, sandbox, etc.).
+  3. Replace PROFILE_DATA with the raw API response JSON (embedded as a JS const).
+  4. Populate SECTION_JSON slices (identifiers, portal, commercial, prompts, flags, segments).
+     For segments: look up each segment ID via get_segment and include name + description.
+  5. Update the formatted HTML sections (ledger rows, policy table, prompt cards, segment rows)
+     with the specific member's data.
+  6. Publish as an Artifact (update existing URL if one is already open for this member).
+
+  SECTIONS:
+  - Identity & Identifiers   → _cvs.proxyID, aetnaMemUniv keys, entity/identity graph
+  - Portal & Eligibility     → portalRegDt, portalInd, a1aEligibility, acoEligibility, pcpSelected
+  - Commercial Coverage      → aetnacommercial.commercialDetails — deduplicate by pol_id
+  - Personalized Prompts     → _cvs.personlizedVisits (note: schema typo, not "personalized")
+  - AH Digital Flags         → _cvs.ahList — ahPortalInd / ahWebInd / ahAppInd / pricing / improve
+  - Segment Membership       → segmentMembership.ups — resolve names via get_segment per ID
+
+  AETNA-SPECIFIC NOTES:
+  - Namespace code: ProxyID (hub lookups); xdm:identityMap key: proxyID (lowercase p, uppercase ID)
+  - Dev merge policy: 7dc5b130-0bea-4ba1-a506-21cb48ff2240 (Edge)
+  - Prod merge policy: 23803271-6c52-4289-9738-1c4174a992f2 (Default Timebased)
+  - commercialDetails often has 24 duplicate rows — deduplicate by pol_id before rendering
+  - aetnaMemUniv fields are pipe-delimited multi-value strings (raw view only; don't parse for formatted)
+-->
+
+<!-- ═══════════════════════ REPLACE BELOW WITH MEMBER DATA ═══════════════════════ -->
+<script>
+// ── CONFIG — replace for each member ────────────────────────────────────────
+const PROFILE_CONFIG = {
+  proxyId:     "REPLACE_PROXY_ID",
+  entityId:    "REPLACE_ENTITY_ID",
+  sandbox:     "aetna-hipaa-dev",
+  mergePolicy: "7dc5b130 · Edge",
+  lastModified:"REPLACE_TIMESTAMP",
+  employer:    "REPLACE_EMPLOYER",
+  role:        "SUB",                // SUB | DEP | ESP
+  coverageStatus: "Active"           // Active | Termed
+};
+
+// ── RAW API RESPONSE — paste full get_profile_by_identity result ─────────────
+const PROFILE_DATA = {
+  /* REPLACE WITH FULL JSON RESPONSE */
+};
+
+// ── SECTION JSON SLICES — extracted subsets shown in { } expand panels ───────
+// These are pre-sliced for display; edit as needed; segment names resolved via get_segment
+const SECTION_JSON = {
+  "json-ids":        { /* identityMap, identityGraph, aetnaMemUniv */ },
+  "json-portal":     { /* portalRegDt, portalInd, eligibility flags */ },
+  "json-commercial": { /* aetnacommercial — deduplicated commercialDetails */ },
+  "json-prompts":    { /* personlizedVisits array */ },
+  "json-flags":      { /* ahList */ },
+  "json-segs": {
+    /* "segment-uuid": { name, description, status, lastQualificationTime } */
+  }
+};
+</script>
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<title>Member REPLACE_PROXY_ID</title>
+<style>
+  :root {
+    --ground:    #F2F4F7;
+    --surface:   #FFFFFF;
+    --surface2:  #F8F9FB;
+    --border:    #DDE1E9;
+    --text:      #0F1623;
+    --text2:     #4A5568;
+    --text3:     #7A8499;
+    --accent:    #1C5FA8;
+    --accent-bg: #EBF2FC;
+    --good:      #16A34A;
+    --good-bg:   #DCFCE7;
+    --muted:     #64748B;
+    --muted-bg:  #F1F5F9;
+    --tag-bg:    #E9EDF5;
+    --rule:      #CBD5E1;
+    --mono:      'SF Mono','Cascadia Code','Fira Mono','Consolas',monospace;
+    --json-key:  #7C3AED;
+    --json-str:  #0E7490;
+    --json-num:  #065F46;
+    --json-bool: #B45309;
+    --json-null: #94A3B8;
+    --json-bg:   #F6F8FF;
+    --json-border:#E0E7F5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:    #0C0F14; --surface:   #161B24; --surface2:  #1C2230;
+      --border:    #252D3D; --text:      #E4E9F2; --text2:     #8B96B0;
+      --text3:     #5A6880; --accent:    #4A90D9; --accent-bg: #112240;
+      --good:      #22C55E; --good-bg:   #052E16; --muted:     #7A8499;
+      --muted-bg:  #1A2030; --tag-bg:    #1E2635; --rule:      #2A3448;
+      --json-key:  #C084FC; --json-str:  #67E8F9; --json-num:  #6EE7B7;
+      --json-bool: #FBBF24; --json-null: #566E8A; --json-bg:   #111827;
+      --json-border:#1E2A3F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:    #0C0F14; --surface:   #161B24; --surface2:  #1C2230;
+    --border:    #252D3D; --text:      #E4E9F2; --text2:     #8B96B0;
+    --text3:     #5A6880; --accent:    #4A90D9; --accent-bg: #112240;
+    --good:      #22C55E; --good-bg:   #052E16; --muted:     #7A8499;
+    --muted-bg:  #1A2030; --tag-bg:    #1E2635; --rule:      #2A3448;
+    --json-key:  #C084FC; --json-str:  #67E8F9; --json-num:  #6EE7B7;
+    --json-bool: #FBBF24; --json-null: #566E8A; --json-bg:   #111827;
+    --json-border:#1E2A3F;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background:var(--ground); color:var(--text); font-family:'Segoe UI',system-ui,-apple-system,sans-serif; font-size:13px; line-height:1.5; min-height:100vh; padding:0 0 48px; }
+
+  /* Topbar */
+  .topbar { position:sticky; top:0; z-index:30; background:var(--surface); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .topbar-left { display:flex; flex-direction:column; gap:3px; }
+  .eyebrow { font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); }
+  .member-id { font-family:var(--mono); font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.01em; }
+  .topbar-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:4px; font-size:11px; font-weight:500; background:var(--tag-bg); color:var(--text2); border:1px solid var(--border); }
+  .chip.accent { background:var(--accent-bg); color:var(--accent); border-color:transparent; }
+  .chip.good   { background:var(--good-bg);   color:var(--good);   border-color:transparent; }
+  .chip-dot { width:6px; height:6px; border-radius:50%; background:currentColor; opacity:0.7; flex-shrink:0; }
+  .toggle { display:flex; background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:3px; gap:2px; }
+  .toggle-btn { padding:4px 12px; border-radius:5px; border:none; background:transparent; color:var(--text3); font-size:11.5px; font-weight:500; cursor:pointer; transition:all 100ms; white-space:nowrap; }
+  .toggle-btn.active { background:var(--surface); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.12); font-weight:600; }
+  .toggle-btn:hover:not(.active) { color:var(--text2); }
+
+  /* Layout */
+  .page { max-width:900px; margin:0 auto; padding:24px 20px 0; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  @media (max-width:640px) { .grid-2 { grid-template-columns:1fr; } }
+  .section-label { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--text3); margin:22px 0 8px; }
+  .section-label:first-child { margin-top:0; }
+
+  /* Cards */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .card-full { margin-bottom:16px; }
+  .card-head { display:flex; align-items:center; justify-content:space-between; padding:9px 14px; border-bottom:1px solid var(--border); background:var(--surface2); }
+  .card-head-left { display:flex; align-items:center; gap:8px; }
+  .card-head-accent { width:3px; height:13px; background:var(--accent); border-radius:2px; flex-shrink:0; }
+  .card-title { font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--text2); }
+
+  /* JSON expand */
+  .json-btn { font-size:10px; font-family:var(--mono); font-weight:600; padding:2px 7px; border-radius:3px; border:1px solid var(--border); background:var(--tag-bg); color:var(--json-key); cursor:pointer; transition:all 100ms; }
+  .json-btn:hover { background:var(--accent-bg); border-color:var(--accent); }
+  .json-btn.open  { background:var(--accent-bg); border-color:var(--accent); color:var(--accent); }
+  .json-panel { display:none; border-top:1px solid var(--json-border); background:var(--json-bg); overflow-x:auto; }
+  .json-panel.open { display:block; }
+  .json-panel pre { padding:12px 14px; font-family:var(--mono); font-size:11px; line-height:1.65; white-space:pre; tab-size:2; color:var(--text2); }
+  .jk{color:var(--json-key);} .js{color:var(--json-str);} .jn{color:var(--json-num);font-variant-numeric:tabular-nums;} .jb{color:var(--json-bool);} .jz{color:var(--json-null);}
+
+  /* Ledger rows */
+  .row { display:grid; grid-template-columns:38% 62%; border-bottom:1px solid var(--border); min-height:31px; }
+  .row:last-child { border-bottom:none; }
+  .row-key { padding:6px 12px 6px 14px; font-size:11px; color:var(--text3); font-weight:500; display:flex; align-items:center; background:var(--surface2); border-right:1px solid var(--border); }
+  .row-val { padding:6px 12px; font-size:12px; color:var(--text); display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
+  .mono { font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:11.5px; }
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:3px; font-size:10.5px; font-weight:600; }
+  .badge-yes { background:var(--good-bg); color:var(--good); }
+  .badge-no  { background:var(--muted-bg); color:var(--muted); }
+  .badge-pol { background:var(--tag-bg); color:var(--text2); border:1px solid var(--border); }
+
+  /* Policy table */
+  .overflow-x { overflow-x:auto; }
+  .policy-table { width:100%; border-collapse:collapse; }
+  .policy-table th { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text3); padding:7px 12px; text-align:left; background:var(--surface2); border-bottom:1px solid var(--border); }
+  .policy-table td { padding:7px 12px; font-size:11.5px; color:var(--text); border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
+  .policy-table tr:last-child td { border-bottom:none; }
+  .policy-table td.mono { font-family:var(--mono); font-size:11px; }
+  .policy-table tr:hover td { background:var(--surface2); }
+
+  /* Prompt */
+  .prompt-card { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:start; padding:14px 16px; }
+  .prompt-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:3px; }
+  .prompt-sub { font-size:11px; color:var(--text2); margin-bottom:8px; }
+  .prompt-meta { display:flex; flex-wrap:wrap; gap:6px; }
+  .prompt-meta-item { font-size:10.5px; color:var(--text3); display:flex; align-items:center; gap:3px; }
+  .prompt-meta-item strong { color:var(--text2); font-weight:600; }
+  .savings-pill { background:var(--good-bg); color:var(--good); border-radius:5px; padding:8px 14px; text-align:center; flex-shrink:0; }
+  .savings-amt { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; display:block; }
+  .savings-label { font-size:10px; opacity:0.75; text-transform:uppercase; letter-spacing:0.06em; }
+
+  /* AH flags */
+  .flags-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
+  .flag-item { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 8px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); text-align:center; gap:5px; }
+  .flag-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .flag-on  { background:var(--good-bg); color:var(--good); }
+  .flag-off { background:var(--muted-bg); color:var(--muted); }
+  .flag-name { font-size:10px; color:var(--text3); font-weight:500; line-height:1.3; }
+
+  /* Segments */
+  .seg-row { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid var(--border); gap:12px; }
+  .seg-row:last-child { border-bottom:none; }
+  .seg-info { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+  .seg-name { font-size:11.5px; color:var(--text); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .seg-id   { font-family:var(--mono); font-size:10px; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .seg-status { font-size:10.5px; font-weight:600; color:var(--good); background:var(--good-bg); padding:2px 7px; border-radius:3px; flex-shrink:0; }
+  .seg-time { font-size:10.5px; color:var(--text3); font-family:var(--mono); flex-shrink:0; }
+
+  /* Raw view */
+  #view-raw { display:none; }
+  .raw-wrap { background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; margin-bottom:24px; }
+  .raw-toolbar { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid var(--border); background:var(--surface2); }
+  .raw-label { font-size:10.5px; font-weight:700; color:var(--text2); letter-spacing:0.04em; text-transform:uppercase; }
+  .copy-btn { font-size:11px; padding:3px 10px; border-radius:4px; border:1px solid var(--border); background:var(--tag-bg); color:var(--text2); cursor:pointer; transition:all 100ms; }
+  .copy-btn:hover { background:var(--accent-bg); color:var(--accent); border-color:var(--accent); }
+  .raw-pre { padding:16px; font-family:var(--mono); font-size:11px; line-height:1.7; white-space:pre; overflow-x:auto; color:var(--text2); max-height:80vh; overflow-y:auto; }
+
+  /* Footer */
+  .footer { margin-top:28px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:10.5px; color:var(--text3); padding-top:16px; border-top:1px solid var(--border); margin-bottom:20px; }
+  .footer-dot { width:3px; height:3px; border-radius:50%; background:var(--rule); }
+</style>
+
+<!-- ══ Topbar ══ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="eyebrow" id="tb-eyebrow">Aetna · aetna-hipaa-dev · Real-Time Customer Profile</span>
+    <span class="member-id" id="tb-id">REPLACE_PROXY_ID</span>
+  </div>
+  <div class="topbar-right">
+    <span class="chip" id="tb-modified"></span>
+    <span class="chip good"><span class="chip-dot"></span><span id="tb-coverage">Coverage Active</span></span>
+    <span class="chip accent"><span class="chip-dot"></span><span id="tb-policy">Edge Merge Policy</span></span>
+    <div class="toggle">
+      <button class="toggle-btn active" onclick="setView('formatted')">Formatted</button>
+      <button class="toggle-btn" onclick="setView('raw')">Raw JSON</button>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ══ FORMATTED VIEW ══ -->
+  <div id="view-formatted">
+
+    <p class="section-label">Identity &amp; Enrollment</p>
+    <div class="grid-2">
+
+      <!-- Identifiers — replace rows with member's actual values -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left"><div class="card-head-accent"></div><span class="card-title">Member Identifiers</span></div>
+          <button class="json-btn" onclick="toggleJson(this,'json-ids')">{ }</button>
+        </div>
+        <div class="card-body">
+          <div class="row"><span class="row-key">Proxy ID</span><span class="row-val mono">REPLACE_PROXY_ID</span></div>
+          <div class="row"><span class="row-key">Entity ID</span><span class="row-val mono" style="font-size:10.5px">REPLACE_ENTITY_ID</span></div>
+          <div class="row"><span class="row-key">EDW Member ID</span><span class="row-val mono">REPLACE</span></div>
+          <div class="row"><span class="row-key">Member ID</span><span class="row-val mono">REPLACE</span></div>
+          <div class="row"><span class="row-key">Sub Cumb ID</span><span class="row-val mono">REPLACE</span></div>
+          <div class="row"><span class="row-key">PS Unique ID</span><span class="row-val mono">REPLACE</span></div>
+          <div class="row"><span class="row-key">MZB Individual ID</span><span class="row-val mono">REPLACE</span></div>
+          <div class="row"><span class="row-key">Control #</span><span class="row-val mono">REPLACE</span></div>
+        </div>
+        <div class="json-panel" id="json-ids"><pre id="json-ids-pre"></pre></div>
+      </div>
+
+      <!-- Portal & Eligibility — replace values -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left"><div class="card-head-accent"></div><span class="card-title">Portal &amp; Eligibility</span></div>
+          <button class="json-btn" onclick="toggleJson(this,'json-portal')">{ }</button>
+        </div>
+        <div class="card-body">
+          <div class="row"><span class="row-key">Portal Registered</span><span class="row-val mono">REPLACE</span></div>
+          <div class="row"><span class="row-key">Portal Active</span><span class="row-val"><span class="badge badge-yes">&#10003; Yes</span></span></div>
+          <div class="row"><span class="row-key">Role</span><span class="row-val"><span class="badge badge-pol">SUB</span></span></div>
+          <div class="row"><span class="row-key">PCP Selected</span><span class="row-val"><span class="badge badge-no">No</span></span></div>
+          <div class="row"><span class="row-key">PayFlex Member</span><span class="row-val"><span class="badge badge-no">No</span></span></div>
+          <div class="row"><span class="row-key">A1A Eligible</span><span class="row-val"><span class="badge badge-no">No</span></span></div>
+          <div class="row"><span class="row-key">ACO Eligible</span><span class="row-val"><span class="badge badge-no">No</span></span></div>
+        </div>
+        <div class="json-panel" id="json-portal"><pre id="json-portal-pre"></pre></div>
+      </div>
+
+    </div>
+
+    <!-- Commercial Coverage — replace table rows -->
+    <p class="section-label">Commercial Coverage</p>
+    <div class="card card-full">
+      <div class="card-head">
+        <div class="card-head-left"><div class="card-head-accent"></div><span class="card-title">Plan &amp; Policy Details &nbsp;&middot;&nbsp; <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text2)" id="employer-name">REPLACE_EMPLOYER</span></span></div>
+        <button class="json-btn" onclick="toggleJson(this,'json-commercial')">{ }</button>
+      </div>
+      <div class="overflow-x">
+        <table class="policy-table">
+          <thead>
+            <tr><th>Policy ID</th><th>Plan / Product</th><th>Eff Date</th><th>Term Date</th><th>Account</th><th>Orig Eff</th></tr>
+          </thead>
+          <tbody id="policy-rows">
+            <!-- Populate one row per unique pol_id from commercialDetails -->
+            <tr>
+              <td><span class="badge badge-pol">A</span></td>
+              <td class="mono">REPLACE_PLAN</td><td class="mono">REPLACE_EFF</td>
+              <td class="mono" style="color:var(--good)">Active</td>
+              <td class="mono">REPLACE_ACCT</td><td class="mono">REPLACE_ORIG</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="json-panel" id="json-commercial"><pre id="json-commercial-pre"></pre></div>
+    </div>
+
+    <!-- Personalized Prompts — replace with actual visits -->
+    <p class="section-label">Personalized Prompts</p>
+    <div class="card card-full">
+      <div class="card-head">
+        <div class="card-head-left"><div class="card-head-accent"></div><span class="card-title">Active Prompts</span></div>
+        <button class="json-btn" onclick="toggleJson(this,'json-prompts')">{ }</button>
+      </div>
+      <div class="prompt-card">
+        <div>
+          <div class="prompt-title">REPLACE_PROMPT_NAME</div>
+          <div class="prompt-sub">Cohort REPLACE &middot; Prompt ID REPLACE &middot; vREPLACE</div>
+          <div class="prompt-meta">
+            <span class="prompt-meta-item">Window: <strong>REPLACE_START &rarr; REPLACE_END</strong></span>
+            <span class="prompt-meta-item" style="color:var(--rule)">|</span>
+            <span class="prompt-meta-item">Claim: <strong class="mono" style="font-size:11px">REPLACE_CLAIM</strong></span>
+          </div>
+        </div>
+        <div class="savings-pill">
+          <span class="savings-amt">$REPLACE</span>
+          <span class="savings-label">Proj. Savings</span>
+        </div>
+      </div>
+      <div class="json-panel" id="json-prompts"><pre id="json-prompts-pre"></pre></div>
+    </div>
+
+    <!-- Digital Flags + Segments -->
+    <p class="section-label">Digital Access &amp; Audience Membership</p>
+    <div class="grid-2">
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left"><div class="card-head-accent"></div><span class="card-title">AH Digital Flags</span></div>
+          <button class="json-btn" onclick="toggleJson(this,'json-flags')">{ }</button>
+        </div>
+        <div class="flags-grid">
+          <!-- Replace flag-on/flag-off based on ahList values -->
+          <div class="flag-item"><div class="flag-icon flag-on">&#10003;</div><span class="flag-name">Portal</span></div>
+          <div class="flag-item"><div class="flag-icon flag-on">&#10003;</div><span class="flag-name">Web</span></div>
+          <div class="flag-item"><div class="flag-icon flag-on">&#10003;</div><span class="flag-name">App</span></div>
+          <div class="flag-item"><div class="flag-icon flag-off">&mdash;</div><span class="flag-name">Web Pricing</span></div>
+          <div class="flag-item"><div class="flag-icon flag-off">&mdash;</div><span class="flag-name">App Pricing</span></div>
+          <div class="flag-item" style="border-right:none"><div class="flag-icon flag-off">&mdash;</div><span class="flag-name">Improve Records</span></div>
+        </div>
+        <div class="json-panel" id="json-flags"><pre id="json-flags-pre"></pre></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left"><div class="card-head-accent"></div><span class="card-title">Segment Membership</span></div>
+          <button class="json-btn" onclick="toggleJson(this,'json-segs')">{ }</button>
+        </div>
+        <div class="card-body" id="seg-rows">
+          <!--
+            One .seg-row per segment — show name (from get_segment) + id + status + time.
+            <div class="seg-row">
+              <div class="seg-info">
+                <span class="seg-name">SEGMENT_NAME</span>
+                <span class="seg-id">SEGMENT_UUID</span>
+              </div>
+              <span class="seg-status">Realized</span>
+              <span class="seg-time">MM-DD&nbsp;HH:MM</span>
+            </div>
+          -->
+        </div>
+        <div class="json-panel" id="json-segs"><pre id="json-segs-pre"></pre></div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;" id="footer-meta"></div>
+      <span>Adobe Experience Platform</span>
+    </div>
+
+  </div><!-- /view-formatted -->
+
+  <!-- ══ RAW JSON VIEW ══ -->
+  <div id="view-raw">
+    <div class="raw-wrap">
+      <div class="raw-toolbar">
+        <span class="raw-label">Full Profile JSON</span>
+        <button class="copy-btn" onclick="copyRaw()">Copy</button>
+      </div>
+      <div class="raw-pre" id="raw-pre"></div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ── Syntax highlighter ───────────────────────────────────────────────────────
+function highlight(json) {
+  const s = JSON.stringify(json, null, 2);
+  return s.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+    let cls = 'jn';
+    if (/^"/.test(m)) { cls = /:$/.test(m) ? 'jk' : 'js'; }
+    else if (/true|false/.test(m)) cls = 'jb';
+    else if (/null/.test(m)) cls = 'jz';
+    const clean = m.endsWith(':') ? m.slice(0,-1) : m;
+    const suffix = m.endsWith(':') ? ':' : '';
+    return `<span class="${cls}">${clean.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>${suffix}`;
+  });
+}
+
+// ── Toggle section JSON panel ────────────────────────────────────────────────
+function toggleJson(btn, panelId) {
+  const panel = document.getElementById(panelId);
+  const pre   = document.getElementById(panelId + '-pre');
+  const open  = panel.classList.toggle('open');
+  btn.classList.toggle('open', open);
+  btn.textContent = open ? '{ ✕ }' : '{ }';
+  if (open && !pre.innerHTML) {
+    pre.innerHTML = highlight(SECTION_JSON[panelId]);
+  }
+}
+
+// ── View toggle ──────────────────────────────────────────────────────────────
+function setView(v) {
+  document.getElementById('view-formatted').style.display = v === 'formatted' ? 'block' : 'none';
+  document.getElementById('view-raw').style.display       = v === 'raw'       ? 'block' : 'none';
+  document.querySelectorAll('.toggle-btn').forEach((b,i) => b.classList.toggle('active',(i===0)===(v==='formatted')));
+  if (v === 'raw' && !document.getElementById('raw-pre').innerHTML) {
+    document.getElementById('raw-pre').innerHTML = highlight(PROFILE_DATA);
+  }
+}
+
+// ── Copy raw JSON ────────────────────────────────────────────────────────────
+function copyRaw() {
+  navigator.clipboard.writeText(JSON.stringify(PROFILE_DATA, null, 2)).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+// ── Populate topbar from config ──────────────────────────────────────────────
+(function init() {
+  const c = PROFILE_CONFIG;
+  document.getElementById('tb-eyebrow').textContent  = `Aetna · ${c.sandbox} · Real-Time Customer Profile`;
+  document.getElementById('tb-id').textContent       = c.proxyId;
+  document.getElementById('tb-modified').innerHTML   = `<span style="color:var(--text3);font-size:10px">Modified</span>&nbsp;${c.lastModified}`;
+  document.getElementById('tb-coverage').textContent = c.coverageStatus;
+  document.getElementById('tb-policy').textContent   = c.mergePolicy;
+  document.querySelector('.member-id').textContent   = c.proxyId;
+  if (document.getElementById('employer-name')) document.getElementById('employer-name').textContent = c.employer;
+  document.getElementById('footer-meta').innerHTML   =
+    `Sandbox: <strong style="color:var(--text2)">${c.sandbox}</strong>
+     <span class="footer-dot"></span>
+     Namespace: <strong style="color:var(--text2)">ProxyID</strong>
+     <span class="footer-dot"></span>
+     Merge Policy: <strong style="color:var(--text2)">${c.mergePolicy}</strong>`;
+})();
+</script>
