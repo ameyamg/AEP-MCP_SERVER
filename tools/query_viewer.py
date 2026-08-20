@@ -83,7 +83,6 @@ td:first-child{padding-left:18px;}td:last-child{padding-right:18px;}
 .nested-json{font-family:var(--mono);font-size:11.5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:5px;white-space:pre;overflow-x:auto;max-width:640px;}
 .j-s{color:var(--j-s);} .j-n{color:var(--j-n);} .j-k{color:var(--j-k);}
 
-#view-raw{display:none;}
 .raw-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 .raw-toolbar{display:flex;justify-content:flex-end;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface2);}
 .copy-btn{font-size:11.5px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;}
@@ -280,7 +279,7 @@ def _generate_html(sql: str, columns: list, rows: list, sandbox: str, title: str
         f"      {empty}",
         "    </div>",
         "  </div>",
-        '  <div id="view-raw">',
+        '  <div id="view-raw" style="display:none">',
         '    <div class="raw-wrap">',
         '      <div class="raw-toolbar">',
         '        <button class="copy-btn" onclick="copyRaw()">Copy JSON</button>',
@@ -676,7 +675,6 @@ tbody tr.group-mid{{border-bottom:none;}}
 .date-sub{{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;}}
 .savings-val{{font-variant-numeric:tabular-nums;font-weight:600;color:var(--savings-text);background:var(--savings-bg);padding:2px 8px;border-radius:4px;font-size:12.5px;}}
 .savings-null{{color:var(--muted);}}
-#view-raw{{display:none;}}
 .raw-id{{font-family:var(--mono);font-size:11.5px;color:var(--accent);white-space:nowrap;}}
 .raw-cell{{max-width:520px;}}
 .raw-preview{{font-family:var(--mono);font-size:11.5px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:500px;display:block;}}
@@ -716,7 +714,7 @@ tbody tr.group-mid{{border-bottom:none;}}
     </table>
     <div class="footer">{footer_txt}</div>
   </div>
-  <div id="view-raw" class="table-wrap">
+  <div id="view-raw" class="table-wrap" style="display:none">
     <table>
       <thead><tr><th>#</th><th>Proxy ID</th><th>personlizedVisits</th></tr></thead>
       <tbody>{"".join(raw_rows)}</tbody>
