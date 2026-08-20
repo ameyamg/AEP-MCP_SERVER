@@ -97,8 +97,8 @@ td:first-child{padding-left:18px;}td:last-child{padding-right:18px;}
 _JS = r"""
 <script>
 function switchView(v, btn) {
-  document.getElementById('view-formatted').style.display = v === 'formatted' ? '' : 'none';
-  document.getElementById('view-raw').style.display = v === 'raw' ? '' : 'none';
+  document.getElementById('view-formatted').style.display = v === 'formatted' ? 'block' : 'none';
+  document.getElementById('view-raw').style.display = v === 'raw' ? 'block' : 'none';
   document.querySelectorAll('.toggle-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
 }
@@ -106,7 +106,7 @@ function toggleNested(id) {
   var el = document.getElementById(id);
   if (!el) return;
   var open = el.style.display !== 'none';
-  el.style.display = open ? 'none' : '';
+  el.style.display = open ? 'none' : 'block';
   if (!open && !el.dataset.hl) {
     el.innerHTML = highlight(el.textContent);
     el.dataset.hl = '1';
@@ -726,8 +726,8 @@ tbody tr.group-mid{{border-bottom:none;}}
 </main>
 <script>
 function setMode(m){{
-  document.getElementById('view-formatted').style.display=m==='formatted'?'':'none';
-  document.getElementById('view-raw').style.display=m==='raw'?'':'none';
+  document.getElementById('view-formatted').style.display=m==='formatted'?'block':'none';
+  document.getElementById('view-raw').style.display=m==='raw'?'block':'none';
   document.querySelectorAll('.toggle-btn').forEach(function(b){{b.classList.toggle('active',b.textContent.toLowerCase().startsWith(m));}});
 }}
 function toggleExpand(id){{
