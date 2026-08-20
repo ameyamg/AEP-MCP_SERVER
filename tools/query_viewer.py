@@ -151,6 +151,24 @@ document.addEventListener('DOMContentLoaded', function() {
 _nested_counter = 0
 
 
+def _sanitize(val):
+    """Convert psycopg2 non-JSON-serializable types to plain Python types."""
+    import datetime, decimal
+    if val is None:
+        return None
+    if isinstance(val, (bool, int, float, str)):
+        return val
+    if isinstance(val, (datetime.date, datetime.datetime, datetime.time)):
+        return val.isoformat()
+    if isinstance(val, decimal.Decimal):
+        return float(val)
+    if isinstance(val, (list, tuple)):
+        return [_sanitize(v) for v in val]
+    if isinstance(val, dict):
+        return {k: _sanitize(v) for k, v in val.items()}
+    return str(val)
+
+
 def _cell_html(val, col_idx: int, row_idx: int) -> str:
     if val is None:
         return '<span class="null-val">—</span>'
@@ -361,7 +379,10 @@ def register(mcp):
                 cols = [d[0] for d in cur.description] if cur.description else []
                 limit = min(max(1, row_limit), 5000)
                 raw_rows = cur.fetchmany(limit)
-                rows = [dict(zip(cols, row)) for row in raw_rows]
+                rows = [
+                    {c: _sanitize(v) for c, v in zip(cols, row)}
+                    for row in raw_rows
+                ]
                 cur.close()
             finally:
                 conn.close()
