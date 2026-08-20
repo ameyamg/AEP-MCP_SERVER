@@ -863,7 +863,7 @@ def register(mcp):
                 cur = conn.cursor()
                 n = min(max(1, limit), 500)
                 cur.execute(
-                    f"SELECT _cvs.proxyID as proxy_id, "
+                    f"SELECT _cvs.aetnaProxyId as proxy_id, "
                     f"CAST(_cvs.personlizedVisits AS TEXT) as visits "
                     f"FROM aetna_dataset_profile_personalized_prompts LIMIT {n}"
                 )
