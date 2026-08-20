@@ -1,0 +1,284 @@
+<!--
+  AEP Query Results — Display Template
+  =====================================
+  Reusable artifact template for rendering AEP dataset / query results.
+  Two modes: Formatted (parsed, human-readable) and Raw Data (column names + expandable nested JSON).
+
+  HOW TO USE:
+  1. Replace the DATASET_CONFIG block with your query metadata.
+  2. Replace the RAW_DATA array with your query rows.
+  3. Implement getCategory() and ctxSub() for your schema's field semantics
+     (or remove category badges and use the generic column renderer).
+  4. Publish as an Artifact.
+-->
+<title>Query Results</title>
+<style>
+  :root {
+    --bg:#F4F7FB; --surface:#FFFFFF; --surface2:#F0F4FA; --surface3:#E8EEF8;
+    --border:#DDE4EF; --text-primary:#0C2340; --text-secondary:#4A5E78; --text-muted:#7A8FA8;
+    --accent:#1473E6; --accent-bg:color-mix(in srgb,#1473E6 10%,transparent);
+    --mono:'SF Mono','Fira Code','Cascadia Code',monospace;
+    --savings-text:#065F46; --savings-bg:#D1FAE5;
+    --raw-key:#7C3AED; --raw-str:#0E7490; --raw-num:#065F46; --raw-null:#94A3B8;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0D1626; --surface:#152035; --surface2:#1C2B42; --surface3:#243450;
+    --border:#263A55; --text-primary:#E2EAF4; --text-secondary:#94AABF; --text-muted:#566E8A;
+    --accent:#4A9EE5; --accent-bg:color-mix(in srgb,#4A9EE5 12%,transparent);
+    --savings-text:#6EE7B7; --savings-bg:#064E3B;
+    --raw-key:#C084FC; --raw-str:#67E8F9; --raw-num:#6EE7B7; --raw-null:#566E8A;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0D1626; --surface:#152035; --surface2:#1C2B42; --surface3:#243450;
+    --border:#263A55; --text-primary:#E2EAF4; --text-secondary:#94AABF; --text-muted:#566E8A;
+    --accent:#4A9EE5; --accent-bg:color-mix(in srgb,#4A9EE5 12%,transparent);
+    --savings-text:#6EE7B7; --savings-bg:#064E3B;
+    --raw-key:#C084FC; --raw-str:#67E8F9; --raw-num:#6EE7B7; --raw-null:#566E8A;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text-primary);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5;}
+
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;position:sticky;top:0;z-index:20;}
+  .header-row1{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+  .header-title{font-size:15px;font-weight:700;}
+  .header-sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11.5px;color:var(--text-secondary);background:var(--surface2);font-variant-numeric:tabular-nums;}
+  .chip strong{color:var(--text-primary);font-weight:600;}
+  .chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+  .toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;}
+  .toggle-btn{padding:5px 13px;border-radius:6px;border:none;background:transparent;color:var(--text-muted);font-size:12px;font-weight:500;cursor:pointer;transition:all 120ms;white-space:nowrap;}
+  .toggle-btn.active{background:var(--surface);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600;}
+  .toggle-btn:hover:not(.active){color:var(--text-primary);}
+
+  main{padding:20px 24px;}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;min-width:600px;}
+  thead tr{background:var(--surface2);}
+  thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;}
+  thead th:first-child{padding-left:18px;}thead th:last-child{padding-right:18px;}
+  tbody tr{border-bottom:1px solid var(--border);transition:background 100ms;}
+  tbody tr:last-child{border-bottom:none;}tbody tr:hover{background:var(--surface2);}
+  td{padding:10px 14px;vertical-align:middle;font-size:13px;}
+  td:first-child{padding-left:18px;}td:last-child{padding-right:18px;}
+  .footer{text-align:center;padding:9px;font-size:11.5px;color:var(--text-muted);background:var(--surface2);border-top:1px solid var(--border);}
+
+  /* formatted helpers */
+  .proxy-id{font-family:var(--mono);font-size:11.5px;color:var(--accent);background:var(--accent-bg);padding:2px 7px;border-radius:4px;white-space:nowrap;}
+  .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:500;border:1px solid;white-space:nowrap;}
+  .date-val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--text-secondary);white-space:nowrap;}
+  .date-sub{font-size:11px;color:var(--text-muted);margin-top:1px;}
+  .savings-val{font-variant-numeric:tabular-nums;font-weight:600;color:var(--savings-text);background:var(--savings-bg);padding:2px 8px;border-radius:4px;font-size:12.5px;}
+  .null-val{color:var(--text-muted);}
+  .cell-main{font-weight:500;}
+  .cell-sub{font-size:11.5px;color:var(--accent);margin-top:2px;opacity:.85;}
+
+  /* raw helpers */
+  #view-raw{display:none;}
+  .raw-id{font-family:var(--mono);font-size:11.5px;color:var(--accent);}
+  .raw-preview{font-family:var(--mono);font-size:11.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:480px;display:block;}
+  .raw-scalar{font-family:var(--mono);font-size:12px;color:var(--text-secondary);}
+  .expand-btn{display:inline-flex;align-items:center;gap:4px;margin-top:5px;padding:3px 9px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer;transition:all 100ms;}
+  .expand-btn:hover{background:var(--surface3);color:var(--text-primary);}
+  .expand-btn svg{width:12px;height:12px;transition:transform 120ms;flex-shrink:0;}
+  .expand-btn.open svg{transform:rotate(180deg);}
+  .json-panel{display:none;margin-top:8px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+  .json-panel.open{display:block;}
+  .json-scroll{overflow-x:auto;padding:12px 14px;}
+  .json-scroll pre{font-family:var(--mono);font-size:11.5px;line-height:1.6;white-space:pre;}
+  .jk{color:var(--raw-key);}.jv{color:var(--raw-str);}.jn{color:var(--raw-num);}.jnull{color:var(--raw-null);}
+</style>
+
+<header>
+  <div class="header-row1">
+    <div>
+      <div class="header-title" id="hdr-title">Query Results</div>
+      <div class="header-sub"  id="hdr-sub"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <div class="toggle">
+        <button class="toggle-btn active" id="btn-formatted" onclick="setMode('formatted')">Formatted</button>
+        <button class="toggle-btn"        id="btn-raw"       onclick="setMode('raw')">Raw Data</button>
+      </div>
+    </div>
+  </div>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <div id="view-formatted" class="table-wrap">
+    <table><thead><tr id="thead-fmt"></tr></thead><tbody id="tbody-fmt"></tbody></table>
+    <div class="footer" id="footer-fmt"></div>
+  </div>
+  <div id="view-raw" class="table-wrap">
+    <table><thead><tr id="thead-raw"></tr></thead><tbody id="tbody-raw"></tbody></table>
+    <div class="footer" id="footer-raw"></div>
+  </div>
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   DATASET CONFIG — replace this block for each query
+   ══════════════════════════════════════════════════════ */
+const DATASET_CONFIG = {
+  title:    "Query Results",          // page heading
+  subtitle: "",                       // dataset name · sandbox · N records
+  columns: [],                        // exact column names from QS (for raw view)
+  // For formatted view: define how to render each column
+  // Keys match column names; values are render hints:
+  //   "id"      → monospace proxy-id chip
+  //   "badge"   → colored badge (needs BADGE_MAP)
+  //   "date"    → MM/DD/YYYY formatted date
+  //   "savings" → green $X chip
+  //   "text"    → plain text (default)
+  //   "nested"  → raw value is a nested struct → show truncated + expand button
+  columnRenderers: {},
+};
+
+/* Optional badge color map for "badge" columns:
+   { "value": { label, bgColor, textColor, borderColor } } */
+const BADGE_MAP = {};
+
+/* Summary chips above the table — add as needed */
+const SUMMARY_CHIPS = [
+  // { label: "rows", value: 10 },
+  // { label: "members", value: 10, dotColor: "#1D4ED8" },
+];
+
+/* ══════════════════════════════════════════════════════
+   RAW DATA — replace rows with actual query output
+   ══════════════════════════════════════════════════════
+   Format: array of objects, keys = column names from QS
+*/
+const RAW_DATA = [
+  // { columnA: "value1", columnB: "value2", ... },
+];
+
+/* ══════════════════════════════════════════════════════
+   FORMATTED VIEW BUILDER
+   Override buildFormattedRow() for custom rendering.
+   ══════════════════════════════════════════════════════ */
+function buildFormattedRow(row, idx) {
+  // Default: render each column using columnRenderers hints
+  const cells = DATASET_CONFIG.columns.map(col => {
+    const val = row[col] ?? '';
+    const hint = DATASET_CONFIG.columnRenderers[col] || 'text';
+    if (hint === 'id')      return `<td><span class="proxy-id">${val}</span></td>`;
+    if (hint === 'date')    return `<td><span class="date-val">${fmtDate(String(val))}</span></td>`;
+    if (hint === 'savings') return `<td>${val ? `<span class="savings-val">$${parseInt(val).toLocaleString()}</span>` : '<span class="null-val">—</span>'}</td>`;
+    if (hint === 'badge') {
+      const b = BADGE_MAP[val] || { label: val, bgColor: 'var(--surface2)', textColor: 'var(--text-secondary)', borderColor: 'var(--border)' };
+      return `<td><span class="badge" style="background:${b.bgColor};color:${b.textColor};border-color:${b.borderColor}">${b.label}</span></td>`;
+    }
+    if (hint === 'nested')  return `<td>${val ? `<span class="raw-preview" style="max-width:320px">${String(val).slice(0,60)}…</span>` : '<span class="null-val">—</span>'}</td>`;
+    return `<td>${val !== null && val !== '' ? val : '<span class="null-val">—</span>'}</td>`;
+  });
+  return `<tr>${cells.join('')}</tr>`;
+}
+
+/* ══════════════════════════════════════════════════════
+   UTILITIES
+   ══════════════════════════════════════════════════════ */
+function fmtDate(d) {
+  if (!d || d === 'NULL' || d === 'null') return '—';
+  const p = d.split('-');
+  return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : d;
+}
+function isNested(val) {
+  if (typeof val !== 'string') return false;
+  return val.startsWith('{') || val.startsWith('(') || val.startsWith('[');
+}
+function syntaxHighlight(json) {
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+    if (/^"/.test(m)) { if (/:$/.test(m)) return `<span class="jk">${m}</span>`; return `<span class="jv">${m}</span>`; }
+    if (/null/.test(m)) return `<span class="jnull">${m}</span>`;
+    if (/true|false/.test(m)) return `<span class="jv">${m}</span>`;
+    return `<span class="jn">${m}</span>`;
+  });
+}
+function prettyVal(val) {
+  try { return syntaxHighlight(JSON.stringify(JSON.parse(val), null, 2)); } catch {}
+  return String(val).replace(/</g, '&lt;');
+}
+function toggleExpand(id) {
+  const panel = document.getElementById(id);
+  const btn   = document.getElementById('btn-' + id);
+  const open  = panel.classList.toggle('open');
+  btn.classList.toggle('open', open);
+  btn.innerHTML = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,6 8,10 12,6"/></svg>${open ? 'Collapse' : 'Expand nested'}`;
+}
+function setMode(mode) {
+  document.getElementById('view-formatted').style.display = mode === 'formatted' ? 'block' : 'none';
+  document.getElementById('view-raw').style.display       = mode === 'raw'       ? 'block' : 'none';
+  document.getElementById('btn-formatted').classList.toggle('active', mode === 'formatted');
+  document.getElementById('btn-raw').classList.toggle('active', mode === 'raw');
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════ */
+document.getElementById('hdr-title').textContent = DATASET_CONFIG.title;
+document.getElementById('hdr-sub').textContent   = DATASET_CONFIG.subtitle;
+
+// Derive columns from data if not specified
+const cols = DATASET_CONFIG.columns.length
+  ? DATASET_CONFIG.columns
+  : RAW_DATA.length ? Object.keys(RAW_DATA[0]) : [];
+
+// Summary chips
+const chipsEl = document.getElementById('chips');
+SUMMARY_CHIPS.forEach(({ label, value, dotColor }) => {
+  const s = document.createElement('span'); s.className = 'chip';
+  s.innerHTML = `${dotColor ? `<span class="chip-dot" style="background:${dotColor}"></span>` : ''}<strong>${value}</strong> ${label}`;
+  chipsEl.appendChild(s);
+});
+if (!SUMMARY_CHIPS.length) {
+  const s = document.createElement('span'); s.className = 'chip';
+  s.innerHTML = `<strong>${RAW_DATA.length}</strong> rows`;
+  chipsEl.appendChild(s);
+  const c = document.createElement('span'); c.className = 'chip';
+  c.innerHTML = `<strong>${cols.length}</strong> columns`;
+  chipsEl.appendChild(c);
+}
+
+// Formatted thead
+const theadFmt = document.getElementById('thead-fmt');
+cols.forEach(c => { const th = document.createElement('th'); th.textContent = c; theadFmt.appendChild(th); });
+
+// Formatted tbody
+const tbodyFmt = document.getElementById('tbody-fmt');
+RAW_DATA.forEach((row, i) => { tbodyFmt.innerHTML += buildFormattedRow(row, i); });
+
+// Raw thead
+const theadRaw = document.getElementById('thead-raw');
+['#', ...cols].forEach(c => { const th = document.createElement('th'); th.textContent = c; theadRaw.appendChild(th); });
+
+// Raw tbody
+const tbodyRaw = document.getElementById('tbody-raw');
+RAW_DATA.forEach((row, idx) => {
+  const tr = document.createElement('tr');
+  let html = `<td style="color:var(--text-muted);font-size:12px;width:36px;font-variant-numeric:tabular-nums">${idx + 1}</td>`;
+  cols.forEach(col => {
+    const val = row[col];
+    const id  = `expand-${idx}-${col.replace(/\W/g,'_')}`;
+    if (val !== null && val !== undefined && isNested(String(val))) {
+      html += `<td><span class="raw-preview">${String(val).slice(0, 80)}${String(val).length > 80 ? '…' : ''}</span>
+        <button class="expand-btn" id="btn-${id}" onclick="toggleExpand('${id}')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,6 8,10 12,6"/></svg>Expand nested
+        </button>
+        <div class="json-panel" id="${id}"><div class="json-scroll"><pre>${prettyVal(val)}</pre></div></div></td>`;
+    } else {
+      const display = val !== null && val !== undefined && val !== '' ? String(val) : '<span class="null-val">NULL</span>';
+      html += `<td><span class="raw-scalar">${display}</span></td>`;
+    }
+  });
+  tr.innerHTML = html;
+  tbodyRaw.appendChild(tr);
+});
+
+// Footer
+const footerTxt = `${RAW_DATA.length} row${RAW_DATA.length !== 1 ? 's' : ''} · ${cols.length} columns · ${DATASET_CONFIG.subtitle || ''} · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+document.getElementById('footer-fmt').textContent = footerTxt;
+document.getElementById('footer-raw').textContent = footerTxt;
+</script>
