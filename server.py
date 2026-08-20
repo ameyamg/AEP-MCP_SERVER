@@ -38,6 +38,7 @@ from tools import (
     profile_viewer,
     profiles,
     query,
+    query_viewer,
     schemas,
     segments,
 )
@@ -66,6 +67,7 @@ erd.register(mcp)
 schemas.register(mcp)
 offer_viewer.register(mcp)
 profile_viewer.register(mcp)
+query_viewer.register(mcp)
 profiles.register(mcp)
 segments.register(mcp)
 query.register(mcp)
