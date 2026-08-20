@@ -333,7 +333,7 @@ def _text_summary(sql: str, columns: list, rows: list, sandbox: str, title: str)
 
 # ── personalized-prompts: composite tuple parser ──────────────────────────────
 _PROMPT_FIELDS = [
-    "priority", "cohort_name", "end_date", "_f3", "category_priority",
+    "priority", "cohort_name", "end_date", "category_priority",
     "prompt_name", "start_date", "status", "attributes",
     "auth_info", "pcp_info", "service_info", "member_id", "projected_savings",
 ]
@@ -348,16 +348,32 @@ _PP_CATS = {
 
 
 def _pp_split_tuples(s: str) -> list:
+    """Split a PostgreSQL composite array into individual record strings.
+
+    Handles two formats psycopg2 may return:
+      [{field,field,...},{...}]   — array of row-type (most common)
+      {(field,field,...),(...)}   — older text representation
+    """
     s = s.strip()
-    if s.startswith("{"):
+    if s.startswith("["):
+        # Array-of-records format: [{...},{...}]
         s = s[1:]
-    if s.endswith("}"):
-        s = s[:-1]
+        if s.endswith("]"):
+            s = s[:-1]
+        open_c, close_c = "{", "}"
+    else:
+        # Composite format: {(...),(...)}
+        if s.startswith("{"):
+            s = s[1:]
+        if s.endswith("}"):
+            s = s[:-1]
+        open_c, close_c = "(", ")"
+
     result, depth, start = [], 0, 0
     for i, c in enumerate(s):
-        if c in ("(", "{"):
+        if c == open_c:
             depth += 1
-        elif c in (")", "}"):
+        elif c == close_c:
             depth -= 1
             if depth == 0:
                 result.append(s[start:i + 1].strip())
@@ -401,9 +417,9 @@ def _pp_parse_visits(visits_str: str) -> list:
     result = []
     for t in _pp_split_tuples(str(visits_str)):
         inner = t
-        if inner.startswith("("):
+        if inner and inner[0] in ("(", "{"):
             inner = inner[1:]
-        if inner.endswith(")"):
+        if inner and inner[-1] in (")", "}"):
             inner = inner[:-1]
         fields = _pp_split_fields(inner)
         visit = {}
